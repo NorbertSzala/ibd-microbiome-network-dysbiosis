@@ -1,0 +1,27 @@
+# Environment to run and execute all written in R scripts in this pipeline
+
+name: ibd-r
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - r-base>=4.3
+  - r-tidyverse
+  - r-readr
+  - r-dplyr
+  - r-tibble
+  - r-stringr
+  - r-ggplot2
+  - r-vegan
+  - r-irkernel
+
+  # Bioconductor
+  - bioconductor-summarizedexperiment
+  - bioconductor-curatedmetagenomicdata
+
+  # Useful helpers
+  - r-remotes
+  - r-devtools

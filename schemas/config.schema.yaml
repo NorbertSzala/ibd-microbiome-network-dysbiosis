@@ -1,0 +1,48 @@
+# schemas/config.schema.yaml
+
+$schema: "http://json-schema.org/draft-07/schema#"
+
+
+type: object
+
+required: paths
+
+properties:
+  paths:
+    type: object
+    required:
+      - data_raw
+      - data_metadata
+      - data_processed
+      - results
+      - logs
+      - figures
+      - models
+      - tables
+    
+    properties:
+      data_raw:
+        type: string
+      data_metadata:
+        type: string
+      data_processed:
+        type: string
+      results:
+        type: string
+      logs:
+        type: string
+      figures:
+        type: string
+      models:
+        type: string
+      tables:
+        type: string
+  
+  params:
+    type: object
+    required:
+      - threads
+    properties:
+      threads:
+        type: integer
+        minimum: 1

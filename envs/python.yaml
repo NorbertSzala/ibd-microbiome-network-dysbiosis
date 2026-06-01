@@ -1,0 +1,22 @@
+# Environment to run and execute all written in Python scripts in this pipeline
+
+name: ibd-python
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - python>=3.11
+  - pandas
+  - numpy
+  - scipy
+  - scikit-learn
+  - statsmodels
+  - networkx
+  - matplotlib
+  - seaborn
+  - jupyter
+  - ipykernel
+  - pip
