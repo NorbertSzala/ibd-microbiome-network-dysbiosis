@@ -3,3 +3,4 @@ plan.md
 *fasta
 results/
 data
+.snakemake/
