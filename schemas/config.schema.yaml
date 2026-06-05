@@ -5,7 +5,11 @@ $schema: "http://json-schema.org/draft-07/schema#"
 
 type: object
 
-required: paths
+required:
+  - paths
+  - dataset
+  - preprocessing
+  - params
 
 properties:
   paths:
@@ -38,6 +42,33 @@ properties:
       tables:
         type: string
   
+  dataset:
+    type: object
+    required: 
+      - study_name
+      - body_site
+      - min_prevalence
+    properties:
+      study_name:
+        type: string
+      body_site:
+        type: string
+      min_prevalence:
+        type: integer
+
+  preprocessing:
+    type: object
+    required:
+      - min_prevalence
+      - transformation
+    properties:
+      min_prevalence: 
+        type: integer
+        minimum: 0.1
+      transformation:
+        type: integer
+
+  
   params:
     type: object
     required:
@@ -46,3 +77,4 @@ properties:
       threads:
         type: integer
         minimum: 1
+    

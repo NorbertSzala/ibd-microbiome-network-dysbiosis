@@ -1,1 +1,10 @@
-mak 
+name: snakemake
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - snakemake
+  - mamba

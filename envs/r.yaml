@@ -21,7 +21,11 @@ dependencies:
   # Bioconductor
   - bioconductor-summarizedexperiment
   - bioconductor-curatedmetagenomicdata
+  - bioconductor-treeio
+  - bioconductor-treeSummarizedExperiment
+  - bioconductor-biocfilecache
 
   # Useful helpers
   - r-remotes
   - r-devtools
+

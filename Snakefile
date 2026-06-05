@@ -18,16 +18,16 @@ validate(configfile, "schemas/config.schema.yaml")
 # --- Path variables -----------------------------------------------------------
 # ------------------------------------------------------------------------------
 
-DATA_RAW = CONFIG['paths']["data_raw"]
-DATA_METADATA = CONFIG['paths']["data_metadata"]
-DATA_PROCESSED = CONFIG['paths']["data_processed"]
+DATA_RAW = config['paths']["data_raw"]
+DATA_METADATA = config['paths']["data_metadata"]
+DATA_PROCESSED = config['paths']["data_processed"]
 
-RESULTS = CONFIG['paths']["results"]
-LOGS = CONFIG['paths']["results/logs"]
+RESULTS = config['paths']["results"]
+LOGS = config['paths']["logs"]
 
-FIGURES = CONFIG['paths']["results/figures"]
-MODELS = CONFIG['paths']["results/models"]
-TABLES = CONFIG['paths']["results/tables"]
+FIGURES = config['paths']["figures"]
+MODELS = config['paths']["models"]
+TABLES = config['paths']["tables"]
 
 
 # ------------------------------------------------------------------------------
@@ -42,18 +42,22 @@ TABLES = CONFIG['paths']["results/tables"]
 
 rule all:
     input:
-        expand(
-            
-        )
+        input:
+            f"{DATA_RAW}/taxa.rds",
+            f"{DATA_RAW}/pathways.rds",
+            f"{DATA_RAW}/metadata.csv",
+            f"{DATA_RAW}/sample_summary.csv"
+
+
 
 # ------------------------------------------------------------------------------
 # --- Include Rules ------------------------------------------------------------
 # ------------------------------------------------------------------------------
 
-include "rules/01_download_data.smk"
-include "rules/02_preprocess.smk"
-include "rules/03_diversity_analysis.smk"
-include "rules/04_ordination.smk"
-include "rules/05_differential_abundance.smk"
-include "rules/06_classification.smk"
-include "rules/07_network_analysis.smk"
+include: "rules/01_download_data.smk"
+# include: "rules/02_preprocess.smk"
+# include: "rules/03_diversity_analysis.smk"
+# include: "rules/04_ordination.smk"
+# include: "rules/05_differential_abundance.smk"
+# include: "rules/06_classification.smk"
+# include: "rules/07_network_analysis.smk"
