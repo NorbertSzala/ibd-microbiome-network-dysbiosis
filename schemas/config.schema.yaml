@@ -1,13 +1,11 @@
-# schemas/config.schema.yaml
-
-$schema: "http://json-schema.org/draft-07/schema#"
-
+$schema: "https://json-schema.org/draft/2020-12/schema"
 
 type: object
 
 required:
   - paths
   - dataset
+  - metadata
   - preprocessing
   - params
 
@@ -23,7 +21,6 @@ properties:
       - figures
       - models
       - tables
-    
     properties:
       data_raw:
         type: string
@@ -41,20 +38,37 @@ properties:
         type: string
       tables:
         type: string
-  
+    additionalProperties: false
+
   dataset:
     type: object
-    required: 
+    required:
       - study_name
       - body_site
-      - min_prevalence
     properties:
       study_name:
         type: string
       body_site:
         type: string
-      min_prevalence:
-        type: integer
+    additionalProperties: false
+
+  metadata:
+    type: object
+    required:
+      - sample_id_column
+      - disease_column
+      - healthy_label
+      - ibd_label
+    properties:
+      sample_id_column:
+        type: string
+      disease_column:
+        type: string
+      healthy_label:
+        type: string
+      ibd_label:
+        type: string
+    additionalProperties: false
 
   preprocessing:
     type: object
@@ -62,13 +76,17 @@ properties:
       - min_prevalence
       - transformation
     properties:
-      min_prevalence: 
-        type: integer
-        minimum: 0.1
+      min_prevalence:
+        type: number
+        minimum: 0
+        maximum: 1
       transformation:
-        type: integer
+        type: string
+        enum:
+          - log1p
+          - clr
+    additionalProperties: false
 
-  
   params:
     type: object
     required:
@@ -77,4 +95,6 @@ properties:
       threads:
         type: integer
         minimum: 1
-    
+    additionalProperties: false
+
+additionalProperties: false

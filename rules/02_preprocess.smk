@@ -1,5 +1,4 @@
 rule preprocess:
-
     input:
         taxa=f"{DATA_RAW}/taxa.rds",
         pathways=f"{DATA_RAW}/pathways.rds",
@@ -13,13 +12,17 @@ rule preprocess:
 
     params:
         min_prevalence=config["preprocessing"]["min_prevalence"],
-        transformation=config["preprocessing"]["transformation"]
+        transformation=config["preprocessing"]["transformation"],
+        sample_id_column=config["metadata"]["sample_id_column"],
+        disease_column=config["metadata"]["disease_column"],
+        healthy_label=config["metadata"]["healthy_label"],
+        ibd_label=config["metadata"]["ibd_label"]
 
     conda:
-        "envs/r.yaml"
+        "../envs/r.yaml"
 
     log:
         f"{LOGS}/02_preprocess.log"
         
     script:
-        "scripts/02_preprocess.R"
+        "../scripts/02_preprocess.R"

@@ -8,7 +8,6 @@ The core idea is:
 
 > IBD-related dysbiosis may not only be visible in *which bacteria are present*, but also in *what metabolic functions the microbial community can perform*.
 
-An additional exploratory part of the project compares simple microbial co-abundance networks between healthy and IBD samples.
 
 ---
 

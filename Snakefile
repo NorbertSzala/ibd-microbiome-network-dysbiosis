@@ -11,7 +11,7 @@ from glob import glob
 from snakemake.utils import validate
 from pathlib import Path
 
-validate(configfile, "schemas/config.schema.yaml")
+validate(config, "schemas/config.schema.yaml")
 
 
 # ------------------------------------------------------------------------------
@@ -42,12 +42,10 @@ TABLES = config['paths']["tables"]
 
 rule all:
     input:
-        input:
-            f"{DATA_RAW}/taxa.rds",
-            f"{DATA_RAW}/pathways.rds",
-            f"{DATA_RAW}/metadata.csv",
-            f"{DATA_RAW}/sample_summary.csv"
-
+        f"{DATA_PROCESSED}/taxa_matrix.csv",
+        f"{DATA_PROCESSED}/pathway_matrix.csv",
+        f"{DATA_PROCESSED}/metadata.csv",
+        f"{DATA_PROCESSED}/preprocessing_summary.csv"
 
 
 # ------------------------------------------------------------------------------
@@ -55,7 +53,7 @@ rule all:
 # ------------------------------------------------------------------------------
 
 include: "rules/01_download_data.smk"
-# include: "rules/02_preprocess.smk"
+include: "rules/02_preprocess.smk"
 # include: "rules/03_diversity_analysis.smk"
 # include: "rules/04_ordination.smk"
 # include: "rules/05_differential_abundance.smk"

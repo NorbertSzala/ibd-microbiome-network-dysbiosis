@@ -84,7 +84,7 @@ get_first_resource <- function(pattern, rownames = NULL) {
     resource_list <- curatedMetagenomicData(pattern = pattern, dryrun=FALSE, rownames = rownames)
   }
 
-  if (length(resource_list)) == 0 {
+  if (length(resource_list) == 0) {
     stop("Downloading resources from curatedMetagenomicData returned no object for pattern: ", pattern)
   }
 
@@ -132,13 +132,14 @@ summarize_metadata <- function(metadata) {
 # 4. Download data
 # ==============================================================================
 message("Downloading taxonomic data from curatedMetagenomicData...")
-taxa_se <- get_first_resource(
-    pattern = paste0(study_name, ".relative_abundance"), 
-    rownames = "short")
 
+taxa_se <- get_first_resource(
+  pattern = paste0(study_name, ".*relative_abundance"),
+  rownames = "short"
+)
 message("Downloading taxonomic data from curatedMetagenomicData...")
 pathway_se <- get_first_resource(
-  pattern = paste0(study_name, ".pathway_abundance")
+  pattern = paste0(study_name, ".*pathway_abundance")
 )
 
 

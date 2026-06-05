@@ -1,24 +1,29 @@
-rule rulename:
-    
-    """
-    # Description:
-    #   Downloads taxonomic relative abundance profiles and functional pathway
-    #   abundance profiles from curatedMetagenomicData. The script saves raw
-    #   SummarizedExperiment objects and sample metadata for downstream preprocessing.
-    #
-    # Inputs:
-    #   No file inputs.
-    
-    """
 
+"""
+Description:
+    Downloads taxonomic relative abundance profiles and functional pathway
+    abundance profiles from curatedMetagenomicData. The script saves raw
+    SummarizedExperiment objects and sample metadata for downstream preprocessing.
+
+Inputs:
+    No file inputs.
+
+Outputs:
+    - data/raw/taxa.rds
+    - data/raw/pathways.rds
+    - data/raw/metadata.csv
+    - data/raw/sample_summary.csv
+"""
+
+rule rulename:
     output:
-        taxa = f"{DATA_RAW}/taxa.rds"
-        pathways = f"{DATA_RAW}/pathways.rds"
-        metadata = f"{DATA_RAW}/metadata.csv"
+        taxa = f"{DATA_RAW}/taxa.rds",
+        pathways = f"{DATA_RAW}/pathways.rds",
+        metadata = f"{DATA_RAW}/metadata.csv",
         summary = f"{DATA_RAW}/sample_summary.csv"
         
     params:
-        study_name = config['dataset']['study_name']
+        study_name = config['dataset']['study_name'],
         body_site = config['dataset']['body_site']
 
     conda:
@@ -28,6 +33,4 @@ rule rulename:
         f"{LOGS}/01_download_data.log"
 
     script:
-        """
-        .../scripts/01_download_data.R
-        """
+        "../scripts/01_download_data.R"

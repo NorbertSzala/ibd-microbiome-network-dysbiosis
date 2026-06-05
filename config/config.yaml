@@ -6,7 +6,7 @@ paths:
   data_raw: "data/raw"
   data_metadata: "data/metadata"
   data_processed: "data/processed"
-  
+
   results: "results"
   logs: "results/logs"
 
@@ -15,14 +15,34 @@ paths:
   tables: "results/tables"
 
 
+# ----------------
+# --- Dataset ----
+# ----------------
+
 dataset:
-  study_name: "LloydPrice_2019"
+  study_name: "HMP_2019_ibdmdb"
   body_site: "stool"
-  min_prevalence: 0.1
+
+
+# ----------------
+# --- Metadata ---
+# ----------------
+
+metadata:
+  sample_id_column: "sample_id"
+  disease_column: "study_condition"
+  healthy_label: "control"
+  ibd_label: "IBD"
+
+
+# ---------------------
+# --- Preprocessing ---
+# ---------------------
 
 preprocessing:
   min_prevalence: 0.1
-  transformation: "log1p" #or "clr"
+  transformation: "log1p" # or "clr"
+
 
 # ------------------
 # --- Parameters ---
