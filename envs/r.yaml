@@ -15,7 +15,7 @@ dependencies:
   - r-ggplot2
   - r-vegan
   - r-irkernel
-
+  
   # Pin rbiom to avoid incompatibility with curatedMetagenomicData
   - r-rbiom=2.2.1
 

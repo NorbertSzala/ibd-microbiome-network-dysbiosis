@@ -689,6 +689,10 @@ pathway_mat <- filter_by_prevalence(
 taxa_after <- ncol(taxa_mat)
 pathways_after <- ncol(pathway_mat)
 
+# Save filtered but untransformed matrices for alpha diversity analysis.
+taxa_raw_filtered <- taxa_mat
+pathway_raw_filtered <- pathway_mat
+
 message("Taxa features before filtering: ", taxa_before)
 message("Taxa features after filtering: ", taxa_after)
 message("Pathway features before filtering: ", pathways_before)
@@ -726,10 +730,14 @@ pathway_mat <- transform_abundance(
 
 message("Cleaning feature names...")
 
+safe_taxa_names <- make_safe_feature_names(colnames(taxa_mat))
+safe_pathway_names <- make_safe_feature_names(colnames(pathway_mat))
+
 colnames(taxa_mat) <- make_safe_feature_names(colnames(taxa_mat))
 colnames(pathway_mat) <- make_safe_feature_names(colnames(pathway_mat))
 
-
+colnames(taxa_raw_filtered) <- safe_taxa_names
+colnames(pathway_raw_filtered) <- safe_pathway_names
 # ==============================================================================
 # 10. Build preprocessing summary
 # ==============================================================================
@@ -756,11 +764,17 @@ message("Saving processed data...")
 save_matrix_csv(taxa_mat, output_files$taxa)
 save_matrix_csv(pathway_mat, output_files$pathways)
 
+save_matrix_csv(taxa_raw_filtered, output_files$taxa_raw_filtered)
+save_matrix_csv(pathway_raw_filtered, output_files$pathways_raw_filtered)
+
 readr::write_csv(metadata, output_files$metadata)
 readr::write_csv(preprocessing_summary, output_files$summary)
 
-message("Saved processed taxa matrix: ", output_files$taxa)
-message("Saved processed pathway matrix: ", output_files$pathways)
+
+message("Saved transformed taxa matrix: ", output_files$taxa)
+message("Saved transformed pathway matrix: ", output_files$pathways)
+message("Saved raw filtered taxa matrix: ", output_files$taxa_raw_filtered)
+message("Saved raw filtered pathway matrix: ", output_files$pathways_raw_filtered)
 message("Saved processed metadata: ", output_files$metadata)
 message("Saved preprocessing summary: ", output_files$summary)
 

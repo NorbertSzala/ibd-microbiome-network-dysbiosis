@@ -7,6 +7,8 @@ rule preprocess:
     output:
         taxa=f"{DATA_PROCESSED}/taxa_matrix.csv",
         pathways=f"{DATA_PROCESSED}/pathway_matrix.csv",
+        taxa_raw_filtered=f"{DATA_PROCESSED}/taxa_matrix_raw_filtered.csv",
+        pathways_raw_filtered=f"{DATA_PROCESSED}/pathway_matrix_raw_filtered.csv",
         metadata=f"{DATA_PROCESSED}/metadata.csv",
         summary=f"{DATA_PROCESSED}/preprocessing_summary.csv"
 

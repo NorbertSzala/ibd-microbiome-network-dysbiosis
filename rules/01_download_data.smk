@@ -15,7 +15,7 @@ Outputs:
     - data/raw/sample_summary.csv
 """
 
-rule rulename:
+rule download_data:
     output:
         taxa = f"{DATA_RAW}/taxa.rds",
         pathways = f"{DATA_RAW}/pathways.rds",
