@@ -25,6 +25,12 @@ dependencies:
   - bioconductor-curatedmetagenomicdata
   - bioconductor-biocfilecache
 
-  # Useful helpers
   - r-remotes
   - r-devtools
+
+  # 07_classifications
+  - r-randomforest
+  - r-proc
+  - r-caret
+  - r-forcats
+  - r-glmnet

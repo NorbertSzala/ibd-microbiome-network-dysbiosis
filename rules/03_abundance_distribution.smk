@@ -15,6 +15,12 @@ rule abundance_distribution:
         taxa_hist_plot = f"{FIGURES}/abundance_distribution_hist_taxa.png",
         pathways_hist_plot = f"{FIGURES}/abundance_distribution_hist_pathways.png", 
 
+    params:
+        seed=config["classification"]["seed"],
+        plot_width=config["plotting"]["width"],
+        plot_height=config["plotting"]["height"],
+        dpi=config["plotting"]["dpi"],
+
     conda:
         "../envs/r.yaml"
 

@@ -1,4 +1,6 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
+title: "IBD microbiome dysbiosis pipeline configuration schema"
+description: "Schema validating configuration for the Functional vs Taxonomic Dysbiosis in IBD Gut Microbiomes pipeline."
 
 type: object
 
@@ -7,11 +9,17 @@ required:
   - dataset
   - metadata
   - preprocessing
+  - diversity
+  - ordination
+  - differential_abundance
+  - classification
+  - plotting
   - params
 
 properties:
   paths:
     type: object
+    description: "Project input and output directory paths."
     required:
       - data_raw
       - data_metadata
@@ -24,36 +32,60 @@ properties:
     properties:
       data_raw:
         type: string
+        minLength: 1
+        description: "Directory for raw downloaded data."
       data_metadata:
         type: string
+        minLength: 1
+        description: "Directory for metadata files."
       data_processed:
         type: string
+        minLength: 1
+        description: "Directory for processed matrices and metadata."
       results:
         type: string
+        minLength: 1
+        description: "Main results directory."
       logs:
         type: string
+        minLength: 1
+        description: "Directory for Snakemake and script logs."
       figures:
         type: string
+        minLength: 1
+        description: "Directory for output figures."
       models:
         type: string
+        minLength: 1
+        description: "Directory for trained models."
       tables:
         type: string
+        minLength: 1
+        description: "Directory for output tables."
     additionalProperties: false
 
   dataset:
     type: object
+    description: "Dataset selection from curatedMetagenomicData."
     required:
       - study_name
       - body_site
     properties:
       study_name:
         type: string
+        minLength: 1
+        default: "HMP_2019_ibdmdb"
+        description: "Study name used to query curatedMetagenomicData."
       body_site:
         type: string
+        minLength: 1
+        default: "stool"
+        description: "Body site used to filter samples."
     additionalProperties: false
 
   metadata:
     type: object
+    description: "Metadata column names and group labels."
     required:
       - sample_id_column
       - disease_column
@@ -62,16 +94,25 @@ properties:
     properties:
       sample_id_column:
         type: string
+        minLength: 1
+        default: "sample_id"
       disease_column:
         type: string
+        minLength: 1
+        default: "study_condition"
       healthy_label:
         type: string
+        minLength: 1
+        default: "control"
       ibd_label:
         type: string
+        minLength: 1
+        default: "IBD"
     additionalProperties: false
 
   preprocessing:
     type: object
+    description: "Filtering and transformation settings."
     required:
       - min_prevalence
       - transformation
@@ -80,21 +121,168 @@ properties:
         type: number
         minimum: 0
         maximum: 1
+        default: 0.1
+        description: "Minimum fraction of samples in which a feature must be present."
       transformation:
         type: string
         enum:
+          - none
           - log1p
           - clr
+        default: "log1p"
+        description: "Transformation applied to abundance matrices."
+      pseudocount:
+        type: number
+        minimum: 0
+        default: 1.0
+        description: "Pseudocount used for transformations that require positive values."
+    additionalProperties: false
+
+  diversity:
+    type: object
+    description: "Alpha-diversity analysis settings."
+    required:
+      - calculate_chao1
+      - metrics
+    properties:
+      calculate_chao1:
+        type: boolean
+        default: true
+      metrics:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          type: string
+          enum:
+            - richness
+            - shannon
+            - simpson
+            - invsimpson
+            - chao1
+    additionalProperties: false
+
+  ordination:
+    type: object
+    description: "PCA, PCoA and PERMANOVA settings."
+    required:
+      - pca_scale
+    properties:
+      pca_scale:
+        type: boolean
+        default: false
+    additionalProperties: false
+
+  differential_abundance:
+    type: object
+    description: "Feature-wise differential abundance settings."
+    required:
+      - p_adjust_method
+      - ntop_features
+    properties:
+      p_adjust_method:
+        type: string
+        enum:
+          - BH
+          - bonferroni
+          - holm
+          - none
+        default: "BH"
+      ntop_features:
+        type: integer
+        minimum: 1
+        default: 20
+    additionalProperties: false
+
+  classification:
+    type: object
+    description: "Classification analysis settings."
+    required:
+      - seed
+      - test_fraction
+      - positive_class
+      - ntop_features
+      - cross_validation
+    properties:
+      seed:
+        type: integer
+        default: 123
+      test_fraction:
+        type: number
+        exclusiveMinimum: 0
+        exclusiveMaximum: 1
+        default: 0.25
+
+      positive_class:
+        type: string
+        enum:
+          - IBD
+          - healthy
+        default: "IBD"
+      ntop_features:
+        type: integer
+        minimum: 1
+        default: 20
+      cross_validation:
+        type: object
+        required:
+          - folds
+          - repeats
+        properties:
+          folds:
+            type: integer
+            minimum: 2
+            maximum: 20
+            default: 5
+          repeats:
+            type: integer
+            minimum: 1
+            default: 3
+        additionalProperties: false
+    additionalProperties: false
+
+  plotting:
+    type: object
+    description: "Global plotting parameters."
+    required:
+      - width
+      - height
+      - dpi
+      - max_label_words_taxa
+      - max_label_words_pathways
+    properties:
+      width:
+        type: number
+        exclusiveMinimum: 0
+        default: 8
+      height:
+        type: number
+        exclusiveMinimum: 0
+        default: 6
+      dpi:
+        type: integer
+        minimum: 72
+        default: 300
+      max_label_words_taxa:
+        type: integer
+        minimum: 1
+        default: 2
+      max_label_words_pathways:
+        type: integer
+        minimum: 1
+        default: 3
     additionalProperties: false
 
   params:
     type: object
+    description: "General execution parameters."
     required:
       - threads
     properties:
       threads:
         type: integer
         minimum: 1
+        default: 8
     additionalProperties: false
 
 additionalProperties: false

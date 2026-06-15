@@ -24,7 +24,9 @@ rule download_data:
         
     params:
         study_name = config['dataset']['study_name'],
-        body_site = config['dataset']['body_site']
+        body_site = config['dataset']['body_site'],
+        seed= config['classification']['seed'],
+
 
     conda:
         "../envs/r.yaml"

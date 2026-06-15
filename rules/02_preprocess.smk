@@ -15,10 +15,13 @@ rule preprocess:
     params:
         min_prevalence=config["preprocessing"]["min_prevalence"],
         transformation=config["preprocessing"]["transformation"],
+        pseudocount = config['preprocessing']['pseudocount'],
         sample_id_column=config["metadata"]["sample_id_column"],
         disease_column=config["metadata"]["disease_column"],
         healthy_label=config["metadata"]["healthy_label"],
-        ibd_label=config["metadata"]["ibd_label"]
+        ibd_label=config["metadata"]["ibd_label"],
+        seed= config['classification']['seed'],
+
 
     conda:
         "../envs/r.yaml"

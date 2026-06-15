@@ -18,6 +18,13 @@ rule ordination:
         permanova=f"{TABLES}/permanova_results.csv",
         variance=f"{TABLES}/ordination_variance_explained.csv"
 
+    params:
+        seed=config["classification"]["seed"],
+        pca_scale=config["ordination"]["pca_scale"],
+        plot_width=config["plotting"]["width"],
+        plot_height=config["plotting"]["height"],
+        dpi=config["plotting"]["dpi"],
+        
     conda:
         "../envs/r.yaml"
 

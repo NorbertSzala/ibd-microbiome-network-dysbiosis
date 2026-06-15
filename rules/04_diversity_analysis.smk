@@ -12,6 +12,14 @@ rule diversity_analysis:
         taxa_plot=f"{FIGURES}/diversity_taxa.png",
         pathway_plot=f"{FIGURES}/diversity_pathways.png"
 
+    params:
+        seed=config["classification"]["seed"],
+        calculate_chao1=config["diversity"]["calculate_chao1"],
+        metrics=config["diversity"]["metrics"],
+        plot_width=config["plotting"]["width"],
+        plot_height=config["plotting"]["height"],
+        dpi=config["plotting"]["dpi"],
+        
     conda:
         "../envs/r.yaml"
 

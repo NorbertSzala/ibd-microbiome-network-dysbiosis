@@ -1,7 +1,6 @@
 # ---------------------
 # --- Project Paths ---
 # ---------------------
-
 paths:
   data_raw: "data/raw"
   data_metadata: "data/metadata"
@@ -18,7 +17,6 @@ paths:
 # ----------------
 # --- Dataset ----
 # ----------------
-
 dataset:
   study_name: "HMP_2019_ibdmdb"
   body_site: "stool"
@@ -27,7 +25,6 @@ dataset:
 # ----------------
 # --- Metadata ---
 # ----------------
-
 metadata:
   sample_id_column: "sample_id"
   disease_column: "study_condition"
@@ -37,16 +34,67 @@ metadata:
 
 # ---------------------
 # --- Preprocessing ---
-# ---------------------
-
+# --------------------
 preprocessing:
   min_prevalence: 0.1
-  transformation: "log1p" # or "clr"
+  transformation: "log1p"
+  pseudocount: 1.0
+
+
+# -----------------
+# --- Diversity ---
+# -----------------
+diversity:
+  calculate_chao1: true
+  metrics:
+    - richness
+    - shannon
+    - simpson
+    - invsimpson
+    - chao1
+
+
+# -------------------
+# --- Ordination ---
+# -------------------
+ordination:
+  pca_scale: false
+
+
+# ------------------------------
+# --- Differential abundance ---
+# ------------------------------
+differential_abundance:
+  p_adjust_method: "BH"
+  ntop_features: 20
+
+
+# ----------------------
+# --- Classification ---
+# ----------------------
+classification:
+  seed: 123
+  test_fraction: 0.25
+  positive_class: "IBD"
+  ntop_features: 20
+  cross_validation:
+    folds: 5
+    repeats: 3
+
+
+# ----------------
+# --- Plotting ---
+# ----------------
+plotting:
+  width: 8
+  height: 6
+  dpi: 300
+  max_label_words_taxa: 2
+  max_label_words_pathways: 3
 
 
 # ------------------
 # --- Parameters ---
 # ------------------
-
 params:
   threads: 8
