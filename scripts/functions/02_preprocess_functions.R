@@ -320,32 +320,6 @@ filter_by_prevalence <- function(mat, min_prevalence = 0.10) {
 }
 
 
-# ------------------------------------------------------------------------------
-# Function: clr_transform
-# ------------------------------------------------------------------------------
-# Description:
-#   Applies centered log-ratio transformation to compositional abundance data.
-#
-# Arguments:
-#   mat:
-#     Sample-by-feature abundance matrix.
-#
-#   pseudocount:
-#     Small value added to all abundances to avoid log(0).
-#
-# Returns:
-#   CLR-transformed numeric matrix.
-#
-# ------------------------------------------------------------------------------
-clr_transform <- function(mat, pseudocount = 1e-6) {
-  mat <- as.matrix(mat)
-  mat <- mat + pseudocount
-
-  log_mat <- log(mat)
-  geometric_mean_log <- rowMeans(log_mat)
-
-  sweep(log_mat, 1, geometric_mean_log, FUN = "-")
-}
 
 
 # ------------------------------------------------------------------------------
@@ -360,21 +334,16 @@ clr_transform <- function(mat, pseudocount = 1e-6) {
 #
 #   method:
 #     Transformation method. Supported values:
-#     - "log1p": log(1 + x) - log() is not possible because a lot of values in the matrices are zero.
-#     - "clr": centered log-ratio transformation
+#     - "log1p": log(1 + x). --- log() is not possible because a lot of values in the matrices are zero.
 #
 # Returns:
 #   Transformed numeric matrix.
 # ------------------------------------------------------------------------------
-transform_abundance <- function(mat, method = "log1p", pseudocount = 1e-1) {
+transform_abundance <- function(mat, method = "log1p") {
   method <- as.character(method)
 
   if (method == "log1p") {
     return(log1p(mat))
-  }
-
-  if (method == "clr") {
-    return(clr_transform(mat, pseudocount = pseudocount))
   }
 
   stop("Unknown transformation method: ", method)
@@ -528,25 +497,31 @@ filter_clean_pathway_matrix <- function(mat) {
 
   is_special <- stringr::str_detect(
     feature_names,
-    "^(UNMAPPED|UNINTEGRATED|UNGROUPED|UNCLASSIFIED|UNKNOWN)(_|$)"
+    "^(UNMAPPED|UNINTEGRATED|UNGROUPED|UNCLASSIFIED|UNKNOWN|NA)(_|$)"
   )
 
-  is_stratified <- stringr::str_detect(
+  is_taxon_stratified <- stringr::str_detect(
     feature_names,
     "(\\||_)(k|p|c|o|f|g|s|t)__"
   )
 
-  remove_features <- is_special | is_stratified
+  is_unclassified_stratified <- stringr::str_detect(
+    feature_names,
+    "(\\||_|__)(unclassified)$"
+  )
+
+  remove_features <- is_special | is_taxon_stratified | is_unclassified_stratified
   keep_features <- feature_names[!remove_features]
 
-  message("Pathway features before clean pathway filtering: ", length(feature_names))
-  message("Pathway special HUMAnN features removed: ", sum(is_special))
-  message("Pathway taxon-stratified features removed: ", sum(is_stratified & !is_special))
-  message("Pathway features removed total: ", sum(remove_features))
-  message("Pathway features after clean pathway filtering: ", length(keep_features))
+  message("Pathway features before clean filtering: ", length(feature_names))
+  message("Removed special HUMAnN features: ", sum(is_special))
+  message("Removed taxon-stratified features: ", sum(is_taxon_stratified & !is_special))
+  message("Removed unclassified-stratified features: ", sum(is_unclassified_stratified & !is_special & !is_taxon_stratified))
+  message("Removed total: ", sum(remove_features))
+  message("Pathway features after clean filtering: ", length(keep_features))
 
   if (length(keep_features) == 0) {
-    stop("No pathway features left after removing special and stratified features.")
+    stop("No pathway features left after filtering.")
   }
 
   mat[, keep_features, drop = FALSE]

@@ -45,8 +45,8 @@ FINAL_OUTPUTS = [
         # f"{DATA_PROCESSED}/preprocessing_summary.csv",
 
         # 03_abundance_distribution
-        f"{FIGURES}/abundance_distribution_dens_taxa.png",
-        f"{FIGURES}/abundance_distribution_dens_pathways.png",
+        f"{FIGURES}/abundance_distribution_ecdf_taxa.png",
+        f"{FIGURES}/abundance_distribution_ecdf_pathways.png",
         f"{FIGURES}/abundance_distribution_hist_taxa.png",
         f"{FIGURES}/abundance_distribution_hist_pathways.png", 
         f"{TABLES}/abundance_distribution_summary.csv",

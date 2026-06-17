@@ -68,14 +68,13 @@ pathways_long <- matrix_to_long(pathways, feature_set = 'pathways')
 # 5. Plot abundance distribution
 # ==============================================================================
 message("Creating plots")
-taxa_density_plot<- create_abundance_density_plot(
-    taxa_long, 
-    title = "Distribution of transformed taxonomic abundances"
+taxa_ecdf_plot <- create_abundance_ecdf_plot(
+    taxa_long,
+    title = "Cumulative distribution of transformed taxonomic abundances"
 )
-
-pathways_density_plot<- create_abundance_density_plot(
-    pathways_long, 
-    title = "Distribution of transformed pathway abundances"
+pathways_ecdf_plot <- create_abundance_ecdf_plot(
+    pathways_long,
+    title = "Cumulative distribution of transformed pathway abundances"
 )
 
 
@@ -91,15 +90,15 @@ pathways_hist_plot<- create_abundance_hist_plot(
 
 
 ggsave(
-    filename = output_files$taxa_density_plot, 
-    plot = taxa_density_plot, 
+    filename = output_files$taxa_ecdf_plot, 
+    plot = taxa_ecdf_plot, 
     width = params$plot_width,
     height = params$plot_height,
     dpi = params$dpi
 )
 ggsave(
-    filename = output_files$pathways_density_plot, 
-    plot = pathways_density_plot, 
+    filename = output_files$pathways_ecdf_plot, 
+    plot = pathways_ecdf_plot, 
     width = params$plot_width,
     height = params$plot_height,
     dpi = params$dpi

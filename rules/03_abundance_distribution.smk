@@ -10,8 +10,8 @@ rule abundance_distribution:
 
     output:
         summary_table = f"{TABLES}/abundance_distribution_summary.csv",
-        taxa_density_plot = f"{FIGURES}/abundance_distribution_dens_taxa.png",
-        pathways_density_plot = f"{FIGURES}/abundance_distribution_dens_pathways.png",
+        taxa_ecdf_plot = f"{FIGURES}/abundance_distribution_ecdf_taxa.png",
+        pathways_ecdf_plot = f"{FIGURES}/abundance_distribution_ecdf_pathways.png",
         taxa_hist_plot = f"{FIGURES}/abundance_distribution_hist_taxa.png",
         pathways_hist_plot = f"{FIGURES}/abundance_distribution_hist_pathways.png", 
 

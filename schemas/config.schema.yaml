@@ -133,14 +133,8 @@ properties:
         enum:
           - none
           - log1p
-          - clr
         default: "log1p"
         description: "Transformation applied to abundance matrices."
-      pseudocount:
-        type: number
-        minimum: 0
-        default: 1.0
-        description: "Pseudocount used for transformations that require positive values."
     additionalProperties: false
 
   diversity:

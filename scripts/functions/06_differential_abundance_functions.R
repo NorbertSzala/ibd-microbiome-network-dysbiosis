@@ -83,7 +83,32 @@ wilcoxon_test <- function(value, group) {
   )$p.value
 }
 
+fisher_prevalence_test <- function(value, group) {
+  df <- tibble(
+    present = value > 0,
+    group = group
+  ) %>%
+    filter(!is.na(present), !is.na(group)) %>%
+    mutate(
+      present = factor(present, levels = c(FALSE, TRUE)),
+      group = factor(group, levels = c("healthy", "IBD"))
+    )
 
+  if (n_distinct(df$group) < 2) {
+    return(NA_real_)
+  }
+
+  if (n_distinct(df$present) < 2) {
+    return(NA_real_)
+  }
+
+  tab <- table(df$present, df$group)
+
+  tryCatch(
+    fisher.test(tab)$p.value,
+    error = function(e) NA_real_
+  )
+}
 
 # ------------------------------------------------------------------------------
 # Function: run_differential_abundance
@@ -144,17 +169,19 @@ run_differential_abundance <- function(long_df, p_adjust_method = "BH") {
         value = value,
         group = disease_status
       ),
-
-
+      p_value_prevalence = fisher_prevalence_test(
+        value = value,
+        group = disease_status),
       .groups = "drop"
     ) %>%
     group_by(feature_set) %>%
     mutate(
       p_adj = p.adjust(p_value, method = p_adjust_method),
+      p_adj_prevalence = p.adjust(p_value_prevalence, method = p_adjust_method),
       direction = case_when(
-        difference_median > 0 ~ "higher_in_IBD",
-        difference_median < 0 ~ "lower_in_IBD",
-        TRUE ~ "no_median_difference"
+        difference_mean > 0 ~ "higher_in_IBD",
+        difference_mean < 0 ~ "lower_in_IBD",
+        TRUE ~ "no_mean_difference"
       ),
       prevalence_direction = case_when(
       difference_prevalence > 0 ~ "more_prevalent_in_IBD",
@@ -162,7 +189,7 @@ run_differential_abundance <- function(long_df, p_adjust_method = "BH") {
       TRUE ~ "no_prevalence_difference"
     )) %>%
     ungroup() %>%
-    arrange(feature_set, p_adj, desc(abs(difference_median)))
+    arrange(feature_set, p_adj, desc(abs(difference_mean)))
 }
 
 
@@ -171,8 +198,7 @@ run_differential_abundance <- function(long_df, p_adjust_method = "BH") {
 # Function: get_top_features
 # ------------------------------------------------------------------------------
 # Description:
-#   Selects top differential features based on adjusted p-value and absolute
-#   median difference.
+#  Selects top differential features based on adjusted p-value and absolute mean log1p abundance difference.
 #
 # Arguments:
 #   results_df:
@@ -190,8 +216,8 @@ get_top_features <- function(results_df, ntop = 20) {
     group_by(feature_set) %>% 
     arrange(
       p_adj,
-      desc(abs(difference_prevalence)),
-      desc(abs(difference_median))
+      desc(abs(difference_mean)),
+      desc(abs(difference_prevalence))
     , .by_group = TRUE) %>% 
     slice_head(n=ntop) %>% 
     ungroup()
@@ -223,56 +249,119 @@ get_top_features <- function(results_df, ntop = 20) {
 #   ggplot object.
 # ------------------------------------------------------------------------------
 plot_top_features <- function(results_df, selected_feature_set, title, ntop = 20) {
-  plotdf <- results_df %>%
-    filter(feature_set == selected_feature_set )%>% 
-    filter(!is.na(p_adj)) %>% 
-    arrange(
-      p_adj,
-      desc(abs(difference_prevalence)),
-      desc(abs(difference_median))
-    ) %>% 
-    slice_head(n = ntop) %>% 
-    mutate(
-      feature_short = stringr::str_replace_all(feature, "_", " "),
-      feature_short = stringr::str_trunc(feature_short, width = 70),
-      feature_short = forcats::fct_reorder(feature_short, difference_median)
-    )
-
-  ggplot(
-    plotdf, 
-    aes(x = feature_short, y = difference_median, fill = direction)
-  ) +
-    geom_col() + 
-    coord_flip() +
-    theme_minimal(base_size = 11)+
-    labs(
-      title = title,
-      x = NULL, y = "Median difference: IBD - healthy", fill = "Direction"
-    )
-}
-
-
-shorten_feature_name <- function(feature, n_words = 3) {
-  feature %>%
-    stringr::str_replace("__.*$", "") %>%
-    stringr::str_replace_all("[_\\-]+", " ") %>%
-    stringr::str_squish() %>%
-    stringr::word(1, n_words)
-}
-
-plot_top_prevalence_features <- function(results_df, selected_feature_set, title, ntop = 20, max_label_words_taxa = 2, max_label_words_pathways = 3) {
-  plot_df <- results_df %>%
+  base_df <- results_df %>%
     filter(feature_set == selected_feature_set) %>%
     filter(!is.na(p_adj)) %>%
-    arrange(p_adj, desc(abs(difference_prevalence))) %>%
-    slice_head(n = ntop) %>%
+    filter(!is.na(difference_mean)) %>%
+    filter(difference_mean != 0)
+
+  plot_df <- bind_rows(
+    base_df %>%
+      filter(difference_mean > 0) %>%
+      arrange(p_adj, desc(abs(difference_mean))) %>%
+      slice_head(n = ceiling(ntop / 2)),
+
+    base_df %>%
+      filter(difference_mean < 0) %>%
+      arrange(p_adj, desc(abs(difference_mean))) %>%
+      slice_head(n = ceiling(ntop / 2))
+  ) %>%
     mutate(
-      feature_short = ifelse(
-        selected_feature_set == "taxa",
-        shorten_feature_name(feature, n_words = max_label_words_taxa),
-        shorten_feature_name(feature, n_words = max_label_words_pathways)
+      feature_plot = forcats::fct_reorder(feature, difference_mean),
+      direction = case_when(
+        difference_mean > 0 ~ "higher in IBD",
+        difference_mean < 0 ~ "lower in IBD",
+        TRUE ~ "no mean difference"
+      )
+    )
+
+  if (nrow(plot_df) == 0) {
+    return(
+      ggplot() +
+        theme_void() +
+        labs(title = paste(title, "- no abundance differences found"))
+    )
+  }
+
+  ggplot(
+    plot_df,
+    aes(
+      x = feature_plot,
+      y = difference_mean,
+      fill = direction
+    )
+  ) +
+    geom_col(width = 0.72) +
+    geom_hline(yintercept = 0, linewidth = 0.3) +
+    coord_flip(clip = "off") +
+    scale_x_discrete(
+      labels = function(x) {
+        purrr::map_chr(
+          x,
+          ~ make_plot_label(.x, selected_feature_set)
+        ) %>%
+          stringr::str_wrap(
+            width = ifelse(selected_feature_set == "pathways", 40, 28)
+          )
+      }
+    ) +
+    scale_y_continuous(
+      labels = scales::number_format(accuracy = 0.001),
+      expand = expansion(mult = c(0.04, 0.08))
+    ) +
+    theme_minimal(base_size = 10) +
+    theme(
+      legend.position = "bottom",
+      legend.direction = "horizontal",
+      legend.text = element_text(size = 8),
+
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor = element_blank(),
+
+      axis.text.y = element_text(
+        size = 7.8,
+        lineheight = 0.82,
+        margin = margin(r = 3)
       ),
-      feature_short = forcats::fct_reorder(feature_short, difference_prevalence),
+      axis.text.x = element_text(size = 8.5),
+      axis.title.x = element_text(size = 9.5),
+
+      plot.title = element_text(size = 11, face = "bold", margin = margin(b = 2)),
+      plot.subtitle = element_text(size = 9, margin = margin(b = 3)),
+      plot.margin = margin(t = 2, r = 8, b = 2, l = 55)
+    ) +
+    labs(
+      title = title,
+      subtitle = "Top features in both directions; bars show mean log1p abundance difference",
+      x = NULL,
+      y = "Mean log1p abundance difference: IBD - healthy",
+      fill = NULL
+    )
+}
+
+
+
+
+plot_top_prevalence_features <- function(results_df, selected_feature_set, title, ntop = 20, max_label_words_taxa = 2, max_label_words_pathways = 3) {
+  base_df <- results_df %>%
+    filter(feature_set == selected_feature_set) %>%
+    filter(!is.na(p_adj_prevalence)) %>%
+    filter(!is.na(difference_prevalence)) %>%
+    filter(difference_prevalence != 0)
+
+  plot_df <- bind_rows(
+    base_df %>%
+      filter(difference_prevalence > 0) %>%
+      arrange(p_adj_prevalence, desc(abs(difference_prevalence))) %>%
+      slice_head(n = ceiling(ntop/2)),
+
+    base_df %>%
+      filter(difference_prevalence < 0) %>%
+      arrange(p_adj_prevalence, desc(abs(difference_prevalence))) %>%
+      slice_head(n = ceiling(ntop/2))
+  ) %>%
+    mutate(
+      feature_plot = forcats::fct_reorder(feature, difference_prevalence),
       prevalence_direction = case_when(
         difference_prevalence > 0 ~ "more prevalent in IBD",
         difference_prevalence < 0 ~ "less prevalent in IBD",
@@ -283,18 +372,54 @@ plot_top_prevalence_features <- function(results_df, selected_feature_set, title
   ggplot(
     plot_df,
     aes(
-      x = feature_short,
+      x = feature_plot,
       y = difference_prevalence,
       fill = prevalence_direction
     )
   ) +
-    geom_col() +
-    coord_flip() +
-    theme_minimal(base_size = 11) +
+    geom_col(width = 0.72) +
+    geom_hline(yintercept = 0, linewidth = 0.3) +
+    coord_flip(clip = "off") +
+    scale_x_discrete(
+      labels = function(x) {
+        purrr::map_chr(
+          x,
+          ~ make_plot_label(.x, selected_feature_set)
+        ) %>%
+          stringr::str_wrap(
+            width = ifelse(selected_feature_set == "pathways", 40, 28)
+          )
+      }
+    ) +
+    scale_y_continuous(
+      labels = scales::percent_format(accuracy = 1),
+      expand = expansion(mult = c(0.04, 0.08))
+    ) +
+    theme_minimal(base_size = 10) +
+    theme(
+      legend.position = "bottom",
+      legend.direction = "horizontal",
+      legend.text = element_text(size = 8),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor = element_blank(),
+
+      axis.text.y = element_text(
+        size = 7.8,
+        lineheight = 0.82,
+        margin = margin(r = 3)
+      ),
+      axis.text.x = element_text(size = 8.5),
+      axis.title.x = element_text(size = 9.5),
+
+      plot.title = element_text(size = 11, face = "bold", margin = margin(b = 2)),
+      plot.subtitle = element_text(size = 9, margin = margin(b = 3)),
+      plot.margin = margin(t = 2, r = 8, b = 2, l = 55)
+    ) +
     labs(
       title = title,
+      subtitle = "Features ranked by Fisher test on presence/absence",
       x = NULL,
       y = "Prevalence difference: IBD - healthy",
-      fill = "Direction"
+      fill = NULL
     )
 }

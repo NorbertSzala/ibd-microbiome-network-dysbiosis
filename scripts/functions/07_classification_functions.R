@@ -344,6 +344,13 @@ evaluate_predictions <- function(
         predicted = factor(predictions$predicted_class, levels = truth_levels)
     )
 
+    tp <- cm[positive_class, positive_class]
+    fn <- sum(cm[positive_class, ]) - tp
+
+    tn <- cm[negative_class, negative_class]
+    fp <- sum(cm[negative_class, ]) - tn
+
+
     accuracy <- sum(diag(cm)) / sum(cm)
 
     sensitivity <- cm[positive_class, positive_class] / sum(cm[positive_class, ])
@@ -492,22 +499,6 @@ extract_elastic_net_coefficients <- function(model, feature_set) {
         ) %>%
         arrange(desc(abs(coefficient)))
 }
-# ------------------------------------------------------------------------------
-# Function: shorten_feature_name_for_classification
-# ------------------------------------------------------------------------------
-shorten_feature_name_for_classification <- function(feature, feature_set) {
-    if (feature_set == "pathways") {
-        feature %>%
-        stringr::str_replace("__.*$", "")%>%
-        stringr::str_replace_all("[_\\-]+", " ") %>%
-        stringr::str_squish()
-    } else {
-        feature %>%
-        stringr::str_replace_all("_", " ") %>%
-        stringr::str_squish() %>% 
-        stringr::word(1, 2)
-    }
-}
 
 
 # ------------------------------------------------------------------------------
@@ -518,7 +509,13 @@ plot_auc_comparison <- function(metrics_df) {
         metrics_df,
         aes(x = feature_set, y = auc, fill = model)
     ) +
-        geom_col(position = position_dodge(width=0.8)) +
+        geom_col(position = 'dodge') +
+        scale_fill_manual(
+            values = c(
+                "random_forest" = "#3f1e87",
+                "elastic_net" = "#197649"
+            )
+        ) +
         coord_cartesian(ylim = c(0, 1)) +
         theme_minimal(base_size = 12) +
         labs(
@@ -528,40 +525,6 @@ plot_auc_comparison <- function(metrics_df) {
         fill = "Model"
         )
 }
-
-
-# ------------------------------------------------------------------------------
-# Function: plot_feature_importance
-# ------------------------------------------------------------------------------
-plot_feature_importance <- function(importance_df, selected_feature_set, ntop = 20) {
-    plot_df <- importance_df %>%
-        filter(feature_set == selected_feature_set) %>%
-        arrange(desc(importance)) %>%
-        slice_head(n = ntop) %>%
-        mutate(
-        feature_short = vapply(
-            feature,
-            shorten_feature_name_for_classification,
-            character(1),
-            feature_set = selected_feature_set
-
-        ),
-        feature_short = forcats::fct_reorder(feature_short, importance)
-        )
-
-    ggplot(
-        plot_df,
-        aes(x = feature_short, y = importance) 
-    ) +
-        geom_col() +
-        coord_flip() +
-        theme_minimal(base_size = 11) + 
-        labs(
-        title=paste("Top ", ntop, selected_feature_set, "features in random forest"),
-        x = NULL,
-        y = "Feature importance"
-        )
-    }
 
 
 # ------------------------------------------------------------------------------
@@ -576,6 +539,7 @@ plot_classification_features <- function(
     selected_model,
     ntop = 20
     ) {
+
     plot_df <- importance_df %>%
         filter(
         feature_set == selected_feature_set,
@@ -584,33 +548,72 @@ plot_classification_features <- function(
         arrange(desc(importance)) %>%
         slice_head(n = ntop) %>%
         mutate(
-        feature_short = vapply(
-            feature,
-            shorten_feature_name_for_classification,
-            character(1),
-            feature_set = selected_feature_set
-        ),
-        feature_short = forcats::fct_reorder(feature_short, importance)
-    )
+        feature_plot = forcats::fct_reorder(feature, importance),
+        direction_plot = case_when(
+        selected_model == "elastic_net" & direction == "higher_in_IBD" ~ "predicts IBD",
+        selected_model == "elastic_net" & direction == "lower_in_IBD" ~ "predicts healthy",
+        TRUE ~ "model importance"
+    ))
+    message("Selected model: ", selected_model)
+    message("Fill levels:")
+    print(unique(plot_df$direction_plot))
 
     ggplot(
         plot_df,
-        aes(x = feature_short, y = importance)
+        aes(x = feature_plot, y = importance, fill = direction_plot)
     ) +
-        geom_col() +
-        coord_flip() +
-        theme_minimal(base_size = 11) +
+        geom_col(width = 0.7) +
+        coord_flip(clip = "off") +
+        scale_x_discrete(
+            labels = function(x) {
+                purrr::map_chr(
+                    x,
+                    ~ make_plot_label(.x, selected_feature_set)
+                ) %>%
+                    stringr::str_wrap(
+                        width = ifelse(selected_feature_set == "pathways", 40, 28)
+                    )
+            }
+        ) +
+        scale_fill_manual(
+            values = c(
+                "predicts IBD" = "#D55E00",
+                "predicts healthy" = "#0072B2",
+                "model importance" = "#595959"
+            )
+        ) +
+        theme_minimal(base_size = 10) +
+        theme(
+            legend.position = ifelse(selected_model == "elastic_net", "bottom", "none"),
+            legend.direction = "horizontal",
+            legend.text = element_text(size = 8),
+
+            panel.grid.major.y = element_blank(),
+            panel.grid.minor = element_blank(),
+
+            axis.text.y = element_text(
+                size = 7.8,
+                lineheight = 0.82,
+                margin = ggplot2::margin(r = 3)
+            ),
+            axis.text.x = element_text(size = 8.5),
+            axis.title.x = element_text(size = 9.5),
+
+            plot.title = element_text(size = 11, face = "bold", margin = ggplot2::margin(b = 2)),
+            plot.subtitle = element_text(size = 9, margin = ggplot2::margin(b = 3)),
+            plot.margin = ggplot2::margin(t = 2, r = 8, b = 2, l = 55)
+        ) +
         labs(
-        title = paste(
-            "Top",
-            ntop,
-            selected_feature_set,
-            "features:",
-            selected_model
-        ),
-        x = NULL,
-        y = "Importance"
-    )
+            title = paste("Top", ntop, selected_feature_set, "features:", selected_model),
+            subtitle = ifelse(
+                selected_model == "elastic_net",
+                "Importance = absolute logistic regression coefficient; color shows coefficient direction",
+                "Importance = mean decrease in Gini impurity"
+            ),
+            x = NULL,
+            y = "Importance",
+            fill = NULL
+        )
 }
 
 

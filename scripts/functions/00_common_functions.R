@@ -121,3 +121,43 @@ match_samples <- function(mat, metadata) {
     list(mat=mat_matched, 
         metadata = metadata_matched)
 }
+
+
+
+# ------------------------------------------------------------------------------
+# Function: clean_taxa_label
+# ------------------------------------------------------------------------------
+clean_taxa_label <- function(feature, max_words = 3, max_width = 45) {
+  cleaned <- feature %>%
+    stringr::str_replace("^_+", "") %>%
+    stringr::str_replace_all("__+", " ") %>%
+    stringr::str_replace_all("_", " ") %>%
+    stringr::str_squish()
+
+  shortened <- purrr::map_chr(
+    stringr::str_split(cleaned, "\\s+"),
+    ~ paste(head(.x, max_words), collapse = " ")
+  )
+
+  stringr::str_trunc(shortened, width = max_width)
+}
+# ------------------------------------------------------------------------------
+# Function: clean pathway label
+# ------------------------------------------------------------------------------
+clean_pathway_label <- function(feature, max_width = 65) {
+  feature %>%
+    stringr::str_replace("(\\||_|__)(unclassified)$", "") %>%
+    stringr::str_replace("^_+", "") %>%
+    stringr::str_replace_all("__+", " ") %>%
+    stringr::str_replace_all("_", " ") %>%
+    stringr::str_squish() %>%
+    stringr::str_trunc(width = max_width)
+}
+
+make_plot_label <- function(feature, feature_set) {
+  if (feature_set == "taxa") {
+    clean_taxa_label(feature)
+  } else {
+    clean_pathway_label(feature)
+  }
+}

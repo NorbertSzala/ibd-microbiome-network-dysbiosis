@@ -39,7 +39,7 @@ metadata:
 preprocessing:
   min_prevalence: 0.1
   transformation: "log1p"
-  pseudocount: 1.0
+
 
 
 # -----------------

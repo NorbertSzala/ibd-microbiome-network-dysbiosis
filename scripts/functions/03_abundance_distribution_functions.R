@@ -26,49 +26,10 @@ matrix_to_long <- function(mat_df, feature_set) {
 
 
 # ------------------------------------------------------------------------------
-# Function: create_abundance_density_plot
-# ------------------------------------------------------------------------------
-# Description:
-#   Creates basic QC plots for processed taxonomic and pathway abundance matrices.
-#   The input matrices are already filtered and transformed by the preprocessing step.
-#   Therefore, this script plots the transformed abundance values directly.
-#
-# Arguments:
-#   long_df:
-#       Long format abundance table
-#   title:
-#       Plot title
-# Returns:
-#   ggplot object
-# ------------------------------------------------------------------------------
-create_abundance_density_plot <- function(long_df, title) {
-    total_values <- sum(!is.na(long_df$abundance))
-    n_zero = sum(long_df$abundance ==0, na.rm = TRUE)
-    fraction_zero = n_zero/total_values
-
-    zero_label = paste0(
-        "Zero values removed: ",
-        n_zero, " / ", total_values, "(", round(100*fraction_zero,1), "%)"
-    )
-
-
-    long_df %>% 
-        filter(!is.na(abundance), abundance > 0) %>% 
-        ggplot(aes(x=abundance)) + 
-        geom_density(linewidth=0.8) +
-        theme_minimal(base_size = 12) + 
-        annotate("label", 
-            x=Inf, y=Inf, label = zero_label, hjust = 1.05, vjust = 1.2, size = 3.5)+
-        labs(title = title,
-            x = 'Transformed abundance (log1p)',
-            y="Density")
-}
-
-# ------------------------------------------------------------------------------
 # Function: create_abundance_hist_plot
 # ------------------------------------------------------------------------------
 # Description:
-#   Creates a histogram of log10-transformed non-zero abundance values. Zero values are removed before plotting, and the number and percentage of removed zero values are displayed as a plot annotation.
+#   Creates a histogram of log1p-transformed non-zero abundance values. Zero values are removed before plotting, and the number and percentage of removed zero values are displayed as a plot annotation.
 #
 # Arguments:
 #   long_df:
@@ -97,11 +58,51 @@ create_abundance_hist_plot <- function(long_df, title) {
         annotate(
             "label", x = Inf, y = Inf,label = zero_label, hjust = 1.05, vjust = 1.2, size = 3.5
         ) +
+        scale_y_continuous(labels = scales::percent_format(accuracy=1)) +
         theme_minimal(base_size = 12) +
         labs(
             title = title,
             x = "Transformed abundance (log1p)",
             y = "Fraction of non-zero values"
+        )
+}
+
+# ------------------------------------------------------------------------------
+# Function: create_abundance_ecdf_plot
+# ------------------------------------------------------------------------------
+# Description:
+#   Creates an empirical cumulative distribution function (ECDF) plot of non-zero log1p-transformed abundance values. 
+# ------------------------------------------------------------------------------
+create_abundance_ecdf_plot <- function(long_df, title) {
+    total_values <- sum(!is.na(long_df$abundance))
+    n_zero <- sum(long_df$abundance == 0, na.rm = TRUE)
+    fraction_zero <- n_zero / total_values
+
+    zero_label <- paste0(
+        "Zero values removed: ",
+        n_zero, " / ", total_values,
+        " (", round(100 * fraction_zero, 1), "%)"
+    )
+
+    plot_df <- long_df %>%
+        filter(!is.na(abundance), abundance > 0)
+
+    ggplot(plot_df, aes(x = abundance)) +
+        stat_ecdf(linewidth = 0.8) +
+        annotate(
+            "label",
+            x = Inf,
+            y = 0,
+            label = zero_label,
+            hjust = 1.05,
+            vjust = -0.5,
+            size = 3.5
+        ) +
+        theme_minimal(base_size = 12) +
+        labs(
+            title = title,
+            x = "Transformed abundance (log1p)",
+            y = "Cumulative fraction of non-zero values"
         )
 }
 

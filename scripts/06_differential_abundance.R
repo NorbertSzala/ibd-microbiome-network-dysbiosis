@@ -119,18 +119,20 @@ top_features <- get_top_features(results_df = all_results, ntop = params$ntop_fe
 # 7. Make plots
 # ==============================================================================
 message("Making plots")
+n_per_direction <- ceiling(params$ntop_features / 2)
+
 taxa_plot <- plot_top_features(
   results_df = taxa_results,
   selected_feature_set = "taxa",
   ntop = params$ntop_features,
-  title = paste("Top ", params$ntop_features, " differentially abundand taxa")
+  title = paste0("Top ", n_per_direction, " taxa higher and lower in IBD")
 )
 
 pathways_plot <- plot_top_features(
   results_df = pathways_results,
   selected_feature_set = "pathways",
   ntop = params$ntop_features,
-  title = paste("Top ", params$ntop_features, " differentially abundand pathways")
+  title = paste0("Top ", n_per_direction, " pathwayss higher and lower in IBD")
 )
 
 
@@ -140,7 +142,7 @@ taxa_plot_prevalence <- plot_top_prevalence_features(
   ntop = params$ntop_features,
   max_label_words_pathways = params$max_label_words_pathways,
   max_label_words_taxa = params$max_label_words_taxa,
-  title = paste("Top", params$ntop_features, "taxa by prevalence difference")
+  title = paste0("Top ", n_per_direction, " more and less prevalent taxa")
 )
 
 pathways_plot_prevalence <- plot_top_prevalence_features(
@@ -149,7 +151,7 @@ pathways_plot_prevalence <- plot_top_prevalence_features(
   ntop = params$ntop_features,
   max_label_words_pathways = params$max_label_words_pathways,
   max_label_words_taxa = params$max_label_words_taxa,
-  title = paste("Top", params$ntop_features, "pathways by prevalence difference")
+  title = paste0("Top ", n_per_direction, " more and less prevalent pathways")
 )
 
 
