@@ -63,7 +63,6 @@ if (exists("snakemake")) {
 }
 min_prevalence <- as.numeric(params$min_prevalence)
 transformation <- as.character(params$transformation)
-pseudocount <- as.numeric(params$pseudocount)
 
 sample_id_column <- as.character(params$sample_id_column)
 disease_column <- as.character(params$disease_column)
@@ -199,13 +198,11 @@ message("Transforming abundance matrices...")
 taxa_mat <- transform_abundance(
   mat = taxa_mat,
   method = transformation,
-  pseudocount = pseudocount
 )
 
 pathway_mat <- transform_abundance(
   mat = pathway_mat,
   method = transformation,
-  pseudocount = pseudocount
 )
 
 

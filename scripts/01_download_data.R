@@ -53,7 +53,7 @@ walk(dirname(unlist(output_files)), dir.create, recursive = TRUE, showWarnings =
 
 study_name <- params$study_name
 target_body_site <- params$body_site
-disease_col <- params$disease_column #TODO: Jaka disease column
+disease_col <- params$disease_column
 
 message("Selected study: ", study_name)
 message("Selected body site: ", target_body_site)

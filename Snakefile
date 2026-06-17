@@ -1,5 +1,3 @@
-# snakemake --cores 4 --use-conda --conda-frontend mamba
-
 # ------------------------------------------------------------------------------
 # --- Imports ------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -17,7 +15,6 @@ validate(config, "schemas/config.schema.yaml")
 # ------------------------------------------------------------------------------
 # --- Path variables -----------------------------------------------------------
 # ------------------------------------------------------------------------------
-
 DATA_RAW = config['paths']["data_raw"]
 DATA_METADATA = config['paths']["data_metadata"]
 DATA_PROCESSED = config['paths']["data_processed"]
@@ -37,12 +34,12 @@ TABLES = config['paths']["tables"]
 
 FINAL_OUTPUTS = [
         # 02_preprocess
-        # f"{DATA_PROCESSED}/taxa_matrix.csv",
-        # f"{DATA_PROCESSED}/pathway_matrix.csv",
-        # f"{DATA_PROCESSED}/metadata.csv",
-        # f'{DATA_PROCESSED}/taxa_matrix_raw_filtered.csv',
-        # f"{DATA_PROCESSED}/pathway_matrix_raw_filtered.csv",
-        # f"{DATA_PROCESSED}/preprocessing_summary.csv",
+        f"{DATA_PROCESSED}/taxa_matrix.csv",
+        f"{DATA_PROCESSED}/pathway_matrix.csv",
+        f"{DATA_PROCESSED}/metadata.csv",
+        f'{DATA_PROCESSED}/taxa_matrix_raw_filtered.csv',
+        f"{DATA_PROCESSED}/pathway_matrix_raw_filtered.csv",
+        f"{DATA_PROCESSED}/preprocessing_summary.csv",
 
         # 03_abundance_distribution
         f"{FIGURES}/abundance_distribution_ecdf_taxa.png",
@@ -88,15 +85,15 @@ FINAL_OUTPUTS = [
 # --- Main rule --- ------------------------------------------------------------
 # ------------------------------------------------------------------------------
 rule all:
-    input:
-        FINAL_OUTPUTS
+        input:
+                FINAL_OUTPUTS
 
 
 # ------------------------------------------------------------------------------
 # --- Include Rules ------------------------------------------------------------
 # ------------------------------------------------------------------------------
-# include: "rules/01_download_data.smk"
-# include: "rules/02_preprocess.smk"
+include: "rules/01_download_data.smk"
+include: "rules/02_preprocess.smk"
 include: "rules/03_abundance_distribution.smk"
 include: "rules/04_diversity_analysis.smk"
 include: "rules/05_ordination.smk"
