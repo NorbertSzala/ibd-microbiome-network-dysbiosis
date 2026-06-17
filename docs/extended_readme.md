@@ -1,381 +1,155 @@
-# Functional vs Taxonomic Dysbiosis in IBD Gut Microbiomes
+# Extended README
 
-This repository contains a project for the **Modelling of Complex Biological Systems** course.
+## Project title
 
-The project investigates whether inflammatory bowel disease (IBD) is better reflected by changes in the **taxonomic composition** of the gut microbiome, changes in its **functional metabolic potential**, or a combination of both.
+**Functional vs Taxonomic Dysbiosis in IBD Gut Microbiomes**
 
-The core idea is:
+## Aim
 
-> IBD-related dysbiosis may not only be visible in *which bacteria are present*, but also in *what metabolic functions the microbial community can perform*.
+The project studies gut microbiome dysbiosis in inflammatory bowel disease (IBD).
 
+The main aim is to compare two types of microbiome information:
 
----
+- **taxonomic information**: which microbial taxa are present,
+- **functional information**: which metabolic pathways are present.
 
-## Background
+The key question is:
 
-Inflammatory bowel disease (IBD) is a chronic inflammatory condition of the gastrointestinal tract that includes **Crohn’s disease** and **ulcerative colitis**. Its exact cause is not fully understood, but it is associated with immune dysregulation, environmental factors, and changes in the gut microbiome.
+> Do pathway profiles contain IBD-related signal that is similar to, stronger than, or weaker than taxonomic profiles?
 
-The gut microbiome can be described at two complementary levels:
+## Biological background
 
-- **Taxonomic composition** — which microbial taxa are present and in what abundance.
-- **Functional composition** — which metabolic pathways are encoded by the microbial community.
+IBD is a chronic inflammatory disease of the gastrointestinal tract. It includes Crohn's disease and ulcerative colitis.
 
-Functional profiles are important because different bacterial taxa can sometimes perform similar biological roles. Therefore, disease-related changes may be visible not only at the level of individual species, but also at the level of microbial metabolic potential.
+IBD is linked with changes in the gut microbiome. These changes can be visible in microbial composition, but also in microbial functions. This is important because different microbes can sometimes perform similar metabolic roles. For this reason, disease signal may be partly taxonomic and partly functional.
 
-In this project, functional composition is represented by **metabolic pathways**, for example pathways involved in carbohydrate metabolism, amino acid biosynthesis, short-chain fatty acid metabolism, bile acid metabolism, or bacterial cell wall biosynthesis.
+In this project, functional profiles are represented by metabolic pathway abundance profiles.
 
----
+## Input data
 
-## Research Question
+The workflow uses public metagenomic profiles from `curatedMetagenomicData`.
 
-The main question of this project is:
+The default study is:
 
-> Do functional pathway profiles contain comparable or stronger IBD-related signal than taxonomic profiles?
-
-More specifically, the project asks:
-
-1. Do healthy and IBD samples differ in taxonomic diversity?
-2. Do healthy and IBD samples differ in functional pathway diversity?
-3. Do taxonomic or functional profiles better separate healthy and IBD samples in ordination analysis?
-4. Can IBD status be predicted better from taxa, pathways, or both combined?
-5. As an exploratory extension, does IBD change the structure of simple microbial co-abundance networks?
-
----
-
-## Data
-
-The project uses publicly available metagenomic data from:
-
-- `curatedMetagenomicData`
-
-The analysis focuses on stool samples with available disease status.
-
-Samples are divided into two main groups:
-
-- healthy controls,
-- IBD patients.
-
-Each sample is represented by two feature matrices:
-
-### 1. Taxonomic profiles
-
-Species-level or genus-level microbial abundance profiles.
-
-Example features:
-
-
-- *Faecalibacterium prausnitzii*
-- *Bacteroides vulgatus*
-- *Escherichia coli*
-- *Roseburia intestinalis*
-
-
-
-### 2. Functional profiles
-
-Metabolic pathway abundance profiles.
-
-Example feature types:
-
-- carbohydrate metabolism pathways
-- amino acid biosynthesis pathways
-- short-chain fatty acid metabolism pathways
-- bile acid metabolism pathways
-- cell wall biosynthesis pathways
-  
----
-
-## Analysis Overview
-
-The workflow is divided into six main parts:
-
-
-1. data download
-2. preprocessing
-3. diversity analysis
-4. ordination
-5. differential abundance
-6. classification
-7. exploratory network analysis
-
-## Repository Structure:
-
-```txt
-ibd-functional-dysbiosis/
-├── README.md
-├── Snakefile
-├── config/
-│   └── config.yaml
-├── data/
-│   ├── raw/
-│   ├── processed/
-│   └── metadata/
-├── scripts/
-│   ├── 01_download_data.R
-│   ├── 02_preprocess.R
-│   ├── 03_diversity_analysis.py
-│   ├── 04_ordination.R
-│   ├── 05_differential_abundance.py
-│   ├── 06_classification.py
-│   └── 07_network_analysis.py
-├── notebooks/
-│   └── exploratory_analysis.ipynb
-├── results/
-│   ├── figures/
-│   ├── tables/
-│   └── models/
-├── report/
-│   ├── main.tex
-│   └── references.bib
-├── presentation/
-│   └── slides.pdf
-└── environment.yml
+```yaml
+study_name: "HMP_2019_ibdmdb"
+body_site: "stool"
+disease_column: "study_condition"
 ```
 
----
+The workflow uses two abundance matrices:
 
-## Workflow
+1. taxonomic abundance matrix,
+2. pathway abundance matrix.
 
-The analysis is intended to be reproducible using Snakemake.
+The metadata table is used to select stool samples and define two groups:
 
-To run the full workflow:
+- `healthy`,
+- `IBD`.
 
-`snakemake --cores 4`
+## Analysis design
 
-Main expected workflow outputs:
+The same samples are used for taxonomic and pathway analysis when possible. This makes the comparison more direct.
 
-```txt
-data/processed/taxa_matrix.csv
-data/processed/pathway_matrix.csv
-data/processed/metadata.csv
-results/tables/classification_metrics.csv
-results/tables/differential_taxa.csv
-results/tables/differential_pathways.csv
-results/tables/network_metrics.csv
-results/figures/
-```
+The workflow performs:
 
-### 1. Data Preprocessing
+1. data download,
+2. preprocessing,
+3. abundance distribution checks,
+4. alpha-diversity analysis,
+5. ordination analysis,
+6. differential abundance analysis,
+7. classification analysis.
 
-The first step prepares matched taxonomic, functional, and metadata tables.
+## Preprocessing
 
-Main preprocessing steps:
+Preprocessing prepares clean matrices for analysis.
 
-download selected IBD-related metagenomic data,
-select stool samples,
-keep samples with known disease status,
-define two groups: healthy and IBD,
-match sample IDs between metadata, taxa, and pathway matrices,
-remove rare taxa and rare pathways,
-transform abundance values using log1p or CLR transformation,
-save processed matrices for downstream analysis.
+Main steps:
 
-Expected outputs:
-```
-data/processed/taxa_matrix.csv
-data/processed/pathway_matrix.csv
-data/processed/metadata.csv
-```
+- load taxonomic and pathway profiles,
+- load metadata,
+- keep stool samples,
+- keep samples with known disease status,
+- map original labels to `healthy` and `IBD`,
+- match samples between taxa, pathways, and metadata,
+- remove rare features using a prevalence threshold,
+- remove special and taxon-stratified HUMAnN pathway features,
+- transform abundance values with `log1p`, unless `none` is selected,
+- save processed matrices and metadata.
 
-### 2. Diversity Analysis
+## Diversity analysis
 
-This step checks whether IBD is associated with altered microbiome diversity.
+Diversity analysis checks whether IBD samples have different within-sample diversity.
 
-At the taxonomic level:
+Calculated metrics include:
 
 - richness,
-- Shannon diversity.
+- Shannon diversity,
+- Simpson diversity,
+- inverse Simpson diversity.
 
-At the functional level:
+Chao1 is disabled by default because the available matrices contain relative abundance values, not raw integer counts.
 
-- pathway richness,
-- pathway Shannon diversity.
+The workflow compares `healthy` and `IBD` samples using Wilcoxon rank-sum tests. P-values are adjusted with the Benjamini-Hochberg method.
 
-The main comparison is:
+## Ordination analysis
 
-`healthy vs IBD`
+Ordination is used to visualise high-dimensional microbiome profiles in two dimensions.
 
-Statistical testing:
+The workflow runs:
 
-- Wilcoxon rank-sum test,
-- optional FDR correction.
+- PCA on transformed abundance matrices,
+- PCoA on Bray-Curtis distance matrices,
+- PERMANOVA to test group-level differences,
+- PERMDISP to check whether group dispersion affects PERMANOVA interpretation.
 
-Expected outputs:
+PCA and PCoA are produced separately for taxa and pathways.
 
-```txt
-results/figures/diversity_taxa.png
-results/figures/diversity_pathways.png
-results/tables/diversity_results.csv
-```
+## Differential abundance analysis
 
-### 3. Ordination Analysis
+Differential abundance analysis tests each feature separately.
 
-Ordination is used to visualize high-dimensional microbiome profiles in two dimensions.
+For each taxon or pathway, the workflow calculates:
 
-Planned methods:
+- mean abundance in healthy samples,
+- mean abundance in IBD samples,
+- median abundance in both groups,
+- prevalence in both groups,
+- Wilcoxon p-value for abundance difference,
+- Fisher exact test p-value for prevalence difference,
+- adjusted p-values.
 
-- PCA for transformed taxonomic profiles,
-- PCA for transformed pathway profiles,
-- optional PCoA using Bray-Curtis distances.
+Top features are selected using adjusted p-values and effect size.
 
-This analysis asks whether healthy and IBD samples separate better based on:
+## Classification analysis
 
-- taxonomic profiles,
-- functional pathway profiles.
+Classification analysis tests how well each feature set predicts disease status.
 
-If possible, PERMANOVA will be used to test whether disease status explains a significant part of between-sample variation.
+The workflow compares:
 
-Expected outputs:
+- taxa-only model,
+- pathway-only model.
 
-```txt
-results/figures/pca_taxa.png
-results/figures/pca_pathways.png
-results/tables/permanova_results.csv
-```
+Two model types are used:
 
-### 4. Differential Abundance Analysis
+- random forest,
+- elastic net logistic regression.
 
-This step identifies individual taxa and pathways associated with IBD status.
+The workflow reports metrics such as ROC-AUC, accuracy, balanced accuracy, sensitivity, and specificity.
 
-Planned analysis:
+Feature importance is also saved for both model types.
 
-- Wilcoxon rank-sum test for each taxon,
-- Wilcoxon rank-sum test for each pathway,
-- Benjamini-Hochberg FDR correction,
-- ranking of features by adjusted p-value and effect size.
+## Main interpretation
 
-Expected outputs:
-
-```
-results/tables/differential_taxa.csv
-results/tables/differential_pathways.csv
-results/figures/top_taxa_ibd.png
-results/figures/top_pathways_ibd.png
-```
-
-### 5. Classification Modelling
-
-Classification is used to compare how much IBD-related information is present in different feature sets.
-
-Three models will be compared:
-
-| Model        | Input features             | Purpose                                                     |
-| ------------ | -------------------------- | ----------------------------------------------------------- |
-| Taxa-only    | taxonomic abundance matrix | tests signal in microbial composition                       |
-| Pathway-only | pathway abundance matrix   | tests signal in functional metabolic potential              |
-| Combined     | taxa + pathways            | tests whether both levels provide complementary information |
-
-Planned algorithms:
-
-- logistic regression,
-- random forest, if time allows.
-
-Evaluation:
-
-- stratified cross-validation,
-- ROC-AUC,
-- balanced accuracy,
-- sensitivity,
-- specificity.
-
-Expected outputs:
-
-```
-results/tables/classification_metrics.csv
-results/figures/roc_auc_comparison.png
-results/tables/feature_importance.csv
-```
-
-Interpretation:
-
-- if the taxa-only model performs best, species composition contains stronger IBD-related signal;
-- if the pathway-only model performs best, functional profiles contain stronger IBD-related signal;
-- if the combined model performs best, taxa and pathways provide complementary information;
-- if all models perform poorly, IBD-associated microbiome changes may be heterogeneous or confounded by other factors.
-
-
-
-### 6. Exploratory Network Analysis
-
-As a compact network-level extension, the project includes a simple co-abundance network analysis.
-
-This part is exploratory and will focus on a limited number of features, for example the top 30 most variable taxa or pathways.
-
-Network construction:
-
-- nodes: selected taxa or pathways,
-- edges: strong Spearman correlations,
-- separate networks for healthy and IBD samples.
-
-Basic network metrics:
-
-- number of nodes,
-- number of edges,
-- density,
-- average degree,
-- clustering coefficient.
-
-Expected outputs:
-
-```txt
-results/figures/network_healthy.png
-results/figures/network_ibd.png
-results/tables/network_metrics.csv
-```
-
-Main interpretation:
-
-> The network analysis checks whether IBD is associated with altered organization of microbial co-abundance relationships.
-
-This analysis is not intended to fully reconstruct microbial interactions. It is used as a simple systems-level summary of microbiome organization.
-
----
-
-## Expected Results
-
-The project is expected to produce a compact comparison of IBD-associated dysbiosis at three levels:
-
-1. Taxonomic level
-   1. changes in microbial composition and diversity.
-2. Functional level
-   1. changes in metabolic pathway composition and diversity.
-3. Exploratory network level
-   1. changes in simple co-abundance structure.
+The project should be interpreted as a comparison of signal strength.
 
 Possible outcomes:
 
-- functional profiles classify IBD as well as or better than taxonomic profiles,
-- taxonomic profiles contain stronger disease-related signal,
-- combined taxa + pathway profiles improve classification,
-- IBD samples show altered diversity but weak classification performance,
-- network structure differs between healthy and IBD samples.
+- taxa classify IBD better than pathways,
+- pathways classify IBD better than taxa,
+- both feature sets perform similarly,
+- diversity or ordination shows group differences but classification remains weak.
 
+These outcomes help describe whether IBD signal is stronger at the taxonomic or functional level.
 
----
-
-### Main limitations:
-
-- only one or a small number of datasets will be used,
-- disease status is simplified to healthy vs IBD,
-- Crohn’s disease and ulcerative colitis may not be analysed separately,
-- longitudinal disease activity is not modelled,
-- batch effects may only be inspected, not fully corrected,
-- network analysis is exploratory and based on correlation, not direct biological interactions.
-
-
-### Future Work
-
-- separate analysis of Crohn’s disease and ulcerative colitis,
-- longitudinal analysis of disease activity,
-- batch-aware modelling across multiple studies,
-- MaAsLin2-based association testing,
-- MOFA-based integration of taxonomic and functional profiles,
-- more robust microbiome network inference using SPIEC-EASI or SparCC,
-- taxa-pathway bipartite network analysis.
-
-
-### Working Hypothesis
-
-> *Functional pathway profiles contain IBD-related information that is comparable to or complementary with taxonomic microbiome profiles.*
-
-The broader interpretation is that IBD-associated dysbiosis may involve not only changes in bacterial composition, but also changes in metabolic potential and microbial system organization.

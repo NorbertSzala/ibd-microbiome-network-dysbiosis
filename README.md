@@ -11,7 +11,7 @@ The main question is whether IBD is better reflected by microbial composition, f
 
 ## Data
 
-The workflow uses public metagenomic profiles from `curatedMetagenomicData`.
+The workflow uses public metagenomic profiles from [`curatedMetagenomicData`](https://waldronlab.io/curatedMetagenomicData/articles/curatedMetagenomicData.html?utm_source=chatgpt.com).
 
 Default dataset in `config/config.yaml`:
 
@@ -148,6 +148,4 @@ More details are available in:
 
 - [`docs/extended_readme.md`](docs/extended_readme.md) — longer project description,
 - [`docs/workflow_overview.md`](docs/workflow_overview.md) — workflow steps and file flow,
-- [`docs/methods.md`](docs/methods.md) — methods used in each analysis,
 - [`docs/configuration.md`](docs/configuration.md) — configuration options,
-- [`docs/project_map.md`](docs/project_map.md) — repository structure.
