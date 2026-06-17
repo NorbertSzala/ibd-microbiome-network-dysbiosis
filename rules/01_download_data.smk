@@ -25,11 +25,11 @@ rule download_data:
     params:
         study_name = config['dataset']['study_name'],
         body_site = config['dataset']['body_site'],
-        seed= config['classification']['seed'],
+        disease_column = config['dataset']['disease_column']
 
 
     conda:
-        "../envs/r.yaml"
+        "../envs/r_download_data.yaml"
 
     log:
         f"{LOGS}/01_download_data.log"

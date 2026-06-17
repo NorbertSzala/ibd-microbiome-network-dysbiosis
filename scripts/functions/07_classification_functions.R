@@ -34,19 +34,18 @@ prepare_classification_data <- function(mat, metadata) {
     df <- matched$mat %>%
         as.data.frame() %>%
         tibble::rownames_to_column("sample_id") %>%
-        left_join
+        left_join(
         matched$metadata %>% select(sample_id, disease_status),
         by = "sample_id"
         )
 
     if (any(is.na(df$disease_status))) 
         stop("Missing disease_status after joining metadata.")
-    }
 
     df %>%
         mutate(
-        disease_status = factor(disease_status)
-        )
+        disease_status = factor(disease_status, levels = c("healthy", "IBD")
+        ))
 }
 
 # ------------------------------------------------------------------------------
@@ -85,13 +84,49 @@ split_train_test <-  function(df, test_fraction=0.25, seed = 123) {
     
     train_idx <- setdiff(seq_len(nrow(df)), test_idx)
     
-    df <- df[train_idx, drop = FALSE]
-    test_df <- df[test_idx drop = FALSE]
+    train_df <- df[train_idx, , drop = FALSE]
+    test_df <- df[test_idx, , drop = FALSE]
 
-    list(train = df, 
+    list(train = train_df, 
         test = test_df)
 }
 
+# ------------------------------------------------------------------------------
+# Function: get_xy
+# ------------------------------------------------------------------------------
+# Description:
+#   Splits a classification data frame into feature matrix x and response vector y.
+#
+# Arguments:
+#   df:
+#     Classification data frame containing sample_id, disease_status and features.
+#
+# Returns:
+#   List with:
+#     - x: feature data frame / matrix
+#     - y: disease_status factor
+# ------------------------------------------------------------------------------
+get_xy <- function(df) {
+    required_columns <- c("sample_id", "disease_status")
+    missing_columns <- setdiff(required_columns, colnames(df))
+
+    if (length(missing_columns) > 0) {
+        stop(
+            "Classification data is missing required columns: ",
+            paste(missing_columns, collapse = ", ")
+        )
+    }
+
+    x <- df %>%
+        select(-sample_id, -disease_status)
+
+    y <- df$disease_status
+
+    list(
+        x = x,
+        y = y
+    )
+}
 
 # ------------------------------------------------------------------------------
 # Function: train_random_forest
@@ -101,72 +136,20 @@ split_train_test <-  function(df, test_fraction=0.25, seed = 123) {
 # ------------------------------------------------------------------------------
 train_random_forest <- function(df, seed = 123) {
     set.seed(seed)
-
-    x_train <- df %>% 
-        select(-sample_id, -disease_status)
-    y_train <- df$disease_status #Labels
+    
+    xy <- get_xy(df)
+    
+    class_counts <- table(xy$y)
+    sampsize <- rep(min(class_counts), length(class_counts))
 
     randomForest::randomForest(
-        x = x_train,
-        y = y_train,
-        ntree = 500,
-        imporance = TRUE
+    x = xy$x,
+    y = xy$y,
+    ntree = 500,
+    importance = TRUE,
+    strata = xy$y,
+    sampsize = sampsize
     )
-}
-
-
-# ------------------------------------------------------------------------------
-# Function: evaluate_random_forest
-# ------------------------------------------------------------------------------
-# Description:
-#   Evaluates a random forest on test set and returns metrics
-# ------------------------------------------------------------------------------
-evaluate_random_forest <- function(model, df, feature_set, positive_class = "IBD") {
-    negative_class <- setdiff(levels(df$disease_status), positive_class)
-
-    if (length(negative_class) != 1) {
-    stop("Could not determine negative class for positive_class = ", positive_class)
-    }
-    x_test <- df %>% 
-        select(-sample_id, -disease_status)
-    y_true <- df$disease_status
-
-    predicted_class <- predict(model, x_test, type = "response")
-    predicted_prob <- predict(model, y_true, type = "prob")[, positive_class]
-
-    cm <- table(
-        truth = factor(y_true, levels = c("healthy", "IBD")),
-        predicted = factor(predicted_class, levels = c("healthy", "IBD"))
-    )
-    
-    accuracy <- sum(diag(cm)) / sum(cm)
-
-    sensitivity <- cm["IBD", "IBD"] / sum(cm["IBD", ]) # What percent of true IBD samples the model recognised as IDB
-    specificity <- cm["healthy", "healthy"] / sum(cm["healthy", ]) #What percent of true healthy samples the model recognized as healthy
-
-    balanced_accuracy <- mean(c(sensitivity, specificity), na.rm = TRUE)
-
-    roc_obj <- pROC::roc(
-        response = y_true,
-        predictor = predicted_prob,
-        levels = c("healthy", "IBD"),
-        quiet = TRUE
-    )
-
-    auc <- as.numeric(pROC::auc(roc_obj))
-
-    tibble(
-        feature_set = feature_set,
-        model = "random_forest",
-        accuracy = accuracy,
-        balanced_accuracy = balanced_accuracy,
-        sensitivity = sensitivity,
-        specificity = specificity,
-        auc = auc,
-        n_train = nrow(model$votes),
-        n_test = nrow(df)
-    )
-
 }
 
 # ------------------------------------------------------------------------------
@@ -241,9 +224,9 @@ train_elastic_net <- function(
     set.seed(seed)
 
 
-    x_train <- df %>% 
-        select(-sample_id, -disease_status)
-    y_train <- df$disease_status
+    xy <- get_xy(df)
+    x_train <- as.matrix(xy$x)
+    y_train <- xy$y
 
     negative_class <- setdiff(levels(y_train), positive_class)
 
@@ -263,7 +246,7 @@ train_elastic_net <- function(
 
     list(
         cv_fit = cv_fit,
-        lambda = cv_fit$lambda.1se,
+        lambda = cv_fit$lambda.1se, #Simple and stable model
         alpha = alpha,
         positive_class = positive_class,
         negative_class = negative_class,
@@ -368,7 +351,7 @@ evaluate_predictions <- function(
 
     precision <- cm[positive_class, positive_class] / sum(cm[, positive_class])
 
-    f1 <- 2 * precision * sensitivity / (precision + sensitivity)
+    f1 <- 2 * precision * sensitivity / (precision + sensitivity) 
 
     balanced_accuracy <- mean(
         c(sensitivity, specificity),
@@ -402,7 +385,7 @@ evaluate_predictions <- function(
 # Function: extract_random_forest_importance
 # ------------------------------------------------------------------------------
 # Description:
-#   Extracts feature importance from a Random Forest model.
+#   Extracts feature importance from a Random Forest model - measurement how important is that prediction
 #
 # Arguments:
 #   model:
@@ -460,6 +443,8 @@ extract_random_forest_importance <- function(model, feature_set) {
 #     coefficient < 0 -> higher feature value predicts non-IBD / healthy
 # ------------------------------------------------------------------------------
 extract_elastic_net_coefficients <- function(model, feature_set) {
+    positive_class <- model$positive_class
+
     coef_mat <- coef(
         model$cv_fit,
         s = model$lambda
@@ -471,30 +456,42 @@ extract_elastic_net_coefficients <- function(model, feature_set) {
 
     colnames(coef_df) <- c("feature", "coefficient")
 
-    coef_df %>%
+    coef_df <- coef_df %>%
         filter(feature != "(Intercept)") %>%
-        filter(coefficient != 0) %>%
+        filter(coefficient != 0)
+
+    if (nrow(coef_df) == 0) {
+        return(tibble(
+            feature_set = character(),
+            model = character(),
+            feature = character(),
+            importance = numeric(),
+            coefficient = numeric(),
+            direction = character()
+        ))
+    }
+
+    coef_df %>%
         mutate(
-        feature_set = feature_set,
-        model = "elastic_net",
-        importance = abs(coefficient),
-        direction = case_when(
-            coefficient > 0 ~ paste0("higher_in_", model$positive_class),
-            coefficient < 0 ~ paste0("lower_in_", model$positive_class),
-            TRUE ~ "zero"
-        )
+            feature_set = feature_set,
+            model = "elastic_net",
+            importance = abs(coefficient),
+            direction = case_when(
+                coefficient > 0 ~ paste0("higher_in_", positive_class),
+                coefficient < 0 ~ paste0("lower_in_", positive_class),
+                TRUE ~ "zero"
+            )
         ) %>%
         select(
-        feature_set,
-        model,
-        feature,
-        importance,
-        coefficient,
-        direction
+            feature_set,
+            model,
+            feature,
+            importance,
+            coefficient,
+            direction
         ) %>%
         arrange(desc(abs(coefficient)))
 }
-
 # ------------------------------------------------------------------------------
 # Function: shorten_feature_name_for_classification
 # ------------------------------------------------------------------------------
@@ -519,16 +516,16 @@ shorten_feature_name_for_classification <- function(feature, feature_set) {
 plot_auc_comparison <- function(metrics_df) {
     ggplot(
         metrics_df,
-        aes(x = feature_set, y = auc, fill = feature_set)
+        aes(x = feature_set, y = auc, fill = model)
     ) +
-        geom_col() +
-        ylim(0, 1) +
+        geom_col(position = position_dodge(width=0.8)) +
+        coord_cartesian(ylim = c(0, 1)) +
         theme_minimal(base_size = 12) +
         labs(
         title = "Classification performance: taxa vs pathways",
         x = NULL,
         y = "AUC", 
-        fill = "Feature set"
+        fill = "Model"
         )
 }
 
@@ -589,7 +586,7 @@ plot_classification_features <- function(
         mutate(
         feature_short = vapply(
             feature,
-            shorten_classification_feature_name,
+            shorten_feature_name_for_classification,
             character(1),
             feature_set = selected_feature_set
         ),
@@ -682,7 +679,7 @@ run_classification_for_feature_set <- function(
 
     if ("random_forest" %in% models) {
         rf_model <- train_random_forest(
-        train_df = split$train,
+        df = split$train,
         seed = seed
         )
 
@@ -717,7 +714,7 @@ run_classification_for_feature_set <- function(
 
     if ("elastic_net" %in% models) {
         en_model <- train_elastic_net(
-        train_df = split$train,
+        df = split$train,
         positive_class = positive_class,
         alpha = 0.5,
         seed = seed
@@ -729,15 +726,15 @@ run_classification_for_feature_set <- function(
         )
 
         en_metrics <- evaluate_predictions(
-        predictions = en_predictions,
-        feature_set = feature_set,
-        model_name = "elastic_net",
-        positive_class = positive_class
+            predictions = en_predictions,
+            feature_set = feature_set,
+            model_name = "elastic_net",
+            positive_class = positive_class
         )
 
         en_importance <- extract_elastic_net_coefficients(
-        model = en_model,
-        feature_set = feature_set
+            model = en_model,
+            feature_set = feature_set
         )
 
         metrics_list[["elastic_net"]] <- en_metrics
@@ -755,6 +752,5 @@ run_classification_for_feature_set <- function(
         metrics = bind_rows(metrics_list),
         predictions = bind_rows(predictions_list),
         importance = bind_rows(importance_list),
-        split = split
-    )
+        split = split)
 }

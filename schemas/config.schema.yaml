@@ -81,6 +81,11 @@ properties:
         minLength: 1
         default: "stool"
         description: "Body site used to filter samples."
+      disease_column:
+        type: string
+        minLength: 1
+        default: "study_condition"
+        description: "The name of column storing disease labels"
     additionalProperties: false
 
   metadata:

@@ -1,0 +1,20 @@
+name: ibd-analysis
+
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - r-base
+  - r-readr
+  - r-dplyr
+  - r-tidyr
+  - r-tibble
+  - r-purrr
+  - r-stringr
+  - r-forcats
+  - r-ggplot2
+  - r-tidyverse
+  - r-vegan
+  - r-yaml
+  # - bioconductor-summarizedexperiment

@@ -1,0 +1,11 @@
+name: ibd-download
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base
+  - r-dplyr
+  - r-readr
+  - r-tibble
+  - bioconductor-curatedmetagenomicdata
+  - bioconductor-summarizedexperiment

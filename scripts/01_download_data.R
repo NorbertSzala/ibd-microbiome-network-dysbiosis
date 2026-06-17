@@ -7,24 +7,21 @@
 # Date: 01-06-2026
 #
 # Description:
-#   Downloads taxonomic relative abundance profiles and functional pathway
+#   Downloads taxonomic relative abundance profiles and metabolic pathway
 #   abundance profiles from curatedMetagenomicData. The script saves raw
 #   SummarizedExperiment objects and sample metadata for downstream preprocessing. (source: https://bioconductor.org/packages/3.16/data/experiment/manuals/curatedMetagenomicData/man/curatedMetagenomicData.pdf)
-#
-# Inputs:
-#   No file inputs.
 #
 # Outputs:
 #   - taxa.rds
 #   - pathways.rds
 #   - metadata.csv
 #   - sample_summary.csv
-#
-# Notes:
-#   This script can be run directly or through Snakemake.
-# ==============================================================================
+#==============================================================================
 
-
+# NOTE:
+# Raw data does not mean raw reads/FASTQ. It means raw for this pipeline. The Data is already preprocessed and it contains relative abundance od features (taxa/metanolic pathways) in the samples.
+# 
+# The bacterial, fungal, and archaeal taxonomic abundances for each sample were calculated with MetaPhlAn3, and metabolic functional potential was calculated with HUMAnN3
 # ==============================================================================
 # 1. Setup
 # ==============================================================================
@@ -56,7 +53,7 @@ walk(dirname(unlist(output_files)), dir.create, recursive = TRUE, showWarnings =
 
 study_name <- params$study_name
 target_body_site <- params$body_site
-set.seed(params$seed)
+disease_col <- params$disease_column #TODO: Jaka disease column
 
 message("Selected study: ", study_name)
 message("Selected body site: ", target_body_site)
@@ -70,28 +67,42 @@ taxa_se <- get_first_resource(
   pattern = paste0(study_name, ".*relative_abundance"),
   rownames = "short"
 )
-message("Downloading taxonomic data from curatedMetagenomicData...")
+message("Downloading metabolic pathway data from curatedMetagenomicData...")
 pathway_se <- get_first_resource(
-  pattern = paste0(study_name, ".*pathway_abundance")
+  pattern = paste0(study_name, ".*pathway_abundance"),
+  rownames = 'short'
 )
 
+taxa_samples <- colnames(taxa_se)
+pathway_samples <- colnames(pathway_se)
+
+message("Taxa samples: ", length(taxa_samples))
+message("Pathway samples: ", length(pathway_samples))
+message("Shared samples: ", length(intersect(taxa_samples, pathway_samples)))
 
 
 # ------------------------------------------------------------------------------
-# 5. Extract metadata
+# 4. Extract metadata
 # ------------------------------------------------------------------------------
 message("Extracting metadata")
 metadata <- clean_metadata(se = taxa_se, target_body_site = target_body_site)
 
-sample_summary <- summarize_metadata(metadata)
+sample_summary <- summarize_metadata(metadata, disease_col)
 
 message("Number of metadata samples after body site filtering: ", nrow(metadata))
 
 
+message("Filtered metadata samples in taxa: ",
+        sum(metadata$sample_id %in% colnames(taxa_se)))
+
+message("Filtered metadata samples in pathways: ",
+        sum(metadata$sample_id %in% colnames(pathway_se)))
+
+print(sample_summary)
 # ------------------------------------------------------------------------------
-# 6. Save outputs
+# 5. Save outputs
 # ------------------------------------------------------------------------------
-message("Saving raw objects and metadata...")
+message("Saving raw .rds objects and metadata...")
 
 saveRDS(taxa_se, output_files$taxa)
 saveRDS(pathway_se, output_files$pathways)

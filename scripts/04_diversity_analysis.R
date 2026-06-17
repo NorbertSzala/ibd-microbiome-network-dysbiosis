@@ -7,30 +7,23 @@
 # Date: 2026-06-06
 #
 # Description:
-#   This script calculates alpha diversity for taxonomic and functional pathway abundance profiles. Alpha diversity describes diversity inside a single sample.
+#   This script calculates alpha diversity for taxonomic and functional pathway abundance profiles on raw_filtered_data( not log transformed). Alpha diversity describes diversity inside a single sample.
 #   The analysis asks whether IBD samples have lower or different taxa/pathway  diversity compared with healthy controls.
 #
-#   The input matrices contain relative abundance values, not integer raw counts. Because of that, Chao1 is not calculated here. Chao1 requires raw count data, because it depends on singleton and doubleton counts. For normalized abundance profiles this would not be methodologically correct.
+#   The input matrices contain relative abundance values, not integer raw counts. Because of that, Chao1 is not calculated here. Chao1 requires raw count data, because it depends on singleton and doubleton counts. 
 #
 #   Metrics calculated in this script:
 #   - Richness:
-#       Number of detected taxa/pathways in a sample. This counts all features
-#       with abundance greater than zero.
+#       Number of detected taxa/pathways in a sample. This counts all features with abundance greater than zero.
 #
 #   - Thresholded richness:
-#       Number of taxa/pathways with abundance greater than 1e-5. This is useful
-#       for relative abundance data because very small non-zero values may be
-#       unstable or biologically weak signals.
+#       Number of taxa/pathways with abundance greater than 1e-5. (Partition of feature in single sample has to be greater than 1e5).
 #
-#   - Shannon index:
-#       Measures diversity by combining richness and evenness. Higher Shannon
-#       values mean that it is harder to predict the identity of a randomly chosen
-#       feature from the sample.
+#   - Shannon index: measures the likelihood that the next observed individual will be the same as the previously observed individual by combining two quantifiable measures, species richness (the number of species in a community) and species equitability (how the number of an individual species compares to the number of other species in the community).
+#       Shannon index combines richness and evenness. It increases when a sample has more detected features and when abundances are more evenly distributed.
 #
 #   - Simpson index:
-#       Measures dominance structure. It is calculated as 1 - sum(p_i^2).
-#       Higher values indicate higher diversity and lower dominance by only a few
-#       abundant features.
+#        Simpson diversity from vegan is 1 - D. It is higher when abundance is spread across more features and lower when one feature dominates.
 #
 #   - Inverse Simpson index:
 #       Gives the effective number of dominant features. It is easier to interpret
@@ -52,8 +45,8 @@
 # https://doi.org/10.1038/s41598-024-77864-y
 
 # Inputs:
-#   - data/processed/taxa_matrix.csv
-#   - data/processed/pathways_matrix.csv
+#   - data/processed/taxa_matrix_raw_filtered.csv",
+#   - data/processed/pathway_matrix_raw_filtered.csv",
 #   - data/processed/metadata.csv
 #
 # Outputs:
@@ -98,8 +91,6 @@ if (exists("snakemake")) {
 
 walk(dirname(unlist(output_files)), dir.create, recursive = TRUE, showWarnings = FALSE)
 
-set.seed(params$seed)
-
 
 # ==============================================================================
 # 3. Load data
@@ -119,13 +110,13 @@ message("Calculating diversity metrics")
 taxa_diversity <- calculate_diversity_metrics_vegan(
   mat = taxa_mat,
   feature_set = "taxa",
-  calculate_chao1 = FALSE
+  calculate_chao1 = params$calculate_chao1
 )
 
 pathways_diversity <- calculate_diversity_metrics_vegan(
   mat = pathways_mat,
   feature_set = "pathways",
-  calculate_chao1 = FALSE
+  calculate_chao1 = params$calculate_chao1
 )
 
 diversity_results <- bind_rows(

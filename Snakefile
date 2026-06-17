@@ -32,18 +32,17 @@ TABLES = config['paths']["tables"]
 
 
 # ------------------------------------------------------------------------------
-# --- Main Rule ----------------------------------------------------------------
+# --- FInal outputs ------------------------------------------------------------
 # ------------------------------------------------------------------------------
 
-rule all:
-    input:
+FINAL_OUTPUTS = [
         # 02_preprocess
-        f"{DATA_PROCESSED}/taxa_matrix.csv",
-        f"{DATA_PROCESSED}/pathway_matrix.csv",
-        f"{DATA_PROCESSED}/metadata.csv",
-        f'{DATA_PROCESSED}/taxa_matrix_raw_filtered.csv',
-        f"{DATA_PROCESSED}/pathway_matrix_raw_filtered.csv",
-        f"{DATA_PROCESSED}/preprocessing_summary.csv",
+        # f"{DATA_PROCESSED}/taxa_matrix.csv",
+        # f"{DATA_PROCESSED}/pathway_matrix.csv",
+        # f"{DATA_PROCESSED}/metadata.csv",
+        # f'{DATA_PROCESSED}/taxa_matrix_raw_filtered.csv',
+        # f"{DATA_PROCESSED}/pathway_matrix_raw_filtered.csv",
+        # f"{DATA_PROCESSED}/preprocessing_summary.csv",
 
         # 03_abundance_distribution
         f"{FIGURES}/abundance_distribution_dens_taxa.png",
@@ -64,9 +63,10 @@ rule all:
         f"{FIGURES}/pcoa_taxa_bray.png",
         f"{FIGURES}/pcoa_pathways_bray.png",
         f"{TABLES}/permanova_results.csv",
+        f"{TABLES}/ordination_variance_explained.csv",
+
 
         # 06_differential_abundance
-        f"{TABLES}/ordination_variance_explained.csv",
         f"{TABLES}/differential_taxa.csv",
         f"{TABLES}/differential_pathways.csv",
         f"{TABLES}/differential_top_features.csv",
@@ -82,17 +82,23 @@ rule all:
         f"{FIGURES}/classification_rf_importance_pathways.png",
         f"{FIGURES}/classification_elastic_net_coefficients_taxa.png",
         f"{FIGURES}/classification_elastic_net_coefficients_pathways.png"
+]
+
+# ------------------------------------------------------------------------------
+# --- Main rule --- ------------------------------------------------------------
+# ------------------------------------------------------------------------------
+rule all:
+    input:
+        FINAL_OUTPUTS
 
 
 # ------------------------------------------------------------------------------
 # --- Include Rules ------------------------------------------------------------
 # ------------------------------------------------------------------------------
-
-include: "rules/01_download_data.smk"
-include: "rules/02_preprocess.smk"
+# include: "rules/01_download_data.smk"
+# include: "rules/02_preprocess.smk"
 include: "rules/03_abundance_distribution.smk"
 include: "rules/04_diversity_analysis.smk"
 include: "rules/05_ordination.smk"
 include: "rules/06_differential_abundance.smk"
 include: "rules/07_classification.smk"
-# include: "rules/08_network_analysis.smk"

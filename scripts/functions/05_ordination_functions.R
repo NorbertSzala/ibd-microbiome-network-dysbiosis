@@ -11,7 +11,7 @@ suppressPackageStartupMessages({
 # Function: remove_zero_variances
 # ------------------------------------------------------------------------------
 # Description:
-#   Removes features with zero variances across samples (those features that does not change between samples). Those features doeas contribute to PCA and may cause some issues
+#   Removes features with zero variances across samples (those features that does not change between samples). Those features doeas contribute to PCA
 #
 # Arguments:
 #   mat:
@@ -32,7 +32,7 @@ remove_zero_variances<- function(mat) {
 # Function: remove_empty_samples
 # ------------------------------------------------------------------------------
 # Description:
-#   Removes samples with total abundance equal to zero. Those samples cant be used with bray curtis distance
+#   Removes samples with total abundance equals to zero. Those samples cant be used with bray curtis distance
 # Arguments:
 #   mat:
 #     Numeric sample by feature matrix.
@@ -172,7 +172,7 @@ run_pca <- function(mat, metadata, feature_set, pca_scale = FALSE) {
 # Returns:
 #  List with PCA scores and variance table
 
-# We use Bray-Curtis as metric to count distances between each pair of samples. Then PCoA is made on this new matrix
+# I used Bray-Curtis as metric to count distances between each pair of samples. Then PCoA is made on this new matrix
 # PCA = matrix (samples x feature)
 # PCoA = matrix (samples x samples)
 # ------------------------------------------------------------------------------
@@ -183,15 +183,12 @@ run_pcoa_bray <- function(mat, metadata, feature_set) {
   mat <- filtered$mat
   metadata <- filtered$metadata
 
-
   if (any(mat < 0, na.rm = TRUE)) {
     stop(
       "Negative values detected. Bray-Curtis distance requires non-negative data. ",
       "Use log1p-transformed data, not CLR-transformed data, for Bray-Curtis PCoA."
     )
   }
-
-
 
   bray_dist <- vegan::vegdist(mat, method = "bray")
 
@@ -234,7 +231,7 @@ run_pcoa_bray <- function(mat, metadata, feature_set) {
 # Function: plot_ordination_clean
 # ------------------------------------------------------------------------------
 # Description:
-#   Creates cleaner PCA/PCoA plot for presentation. Points are downsampled only
+#   Creates PCA/PCoA plot for presentation. Points are downsampled only
 #   for readability, while density contours, ellipses and centroids are calculated
 #   from all samples.
 #
@@ -264,7 +261,7 @@ plot_ordination_clean <- function(
   x_label,
   y_label,
   title,
-  n_points_per_group = 450
+  n_points_per_group = 500
 ) {
   group_colors <- c(
     "healthy" = "#4C72B0",
@@ -282,7 +279,6 @@ plot_ordination_clean <- function(
     )
 
   # Points are downsampled only for plotting.
-  # This keeps the plot readable but does not affect contours or centroids.
   points_df <- plot_df %>%
     group_by(disease_status) %>%
     group_modify(~ slice_sample(.x, n = min(nrow(.x), n_points_per_group))) %>%
@@ -298,7 +294,6 @@ plot_ordination_clean <- function(
     )
 
   # Axis limits are based on central 98% of points.
-  # This avoids empty space caused by extreme outliers.
   x_lim <- make_axis_limits(plot_df[[x_col]], probs = c(0.01, 0.99), pad = 0.02)
   y_lim <- make_axis_limits(plot_df[[y_col]], probs = c(0.01, 0.99), pad = 0.02)
 
@@ -308,7 +303,7 @@ plot_ordination_clean <- function(
   ) +
     geom_point(
       data = points_df,
-      alpha = 0.32,
+      alpha = 0.3,
       size = 0.75,
       stroke = 0
     ) +
@@ -322,7 +317,7 @@ plot_ordination_clean <- function(
     stat_ellipse(
       aes(group = disease_status),
       type = "norm",
-      level = 0.68,
+      level = 0.7,
       linewidth = 0.75,
       show.legend = FALSE
     ) +
@@ -355,18 +350,18 @@ plot_ordination_clean <- function(
         )
       )
     ) +
-    theme_minimal(base_size = 10.5) +
+    theme_minimal(base_size = 12) +
     theme(
       legend.position = "bottom",
       legend.direction = "horizontal",
-      legend.title = element_text(size = 8.5),
-      legend.text = element_text(size = 8.5),
+      legend.title = element_text(size = 9),
+      legend.text = element_text(size = 9),
       legend.box = "horizontal",
 
-      plot.title = element_text(face = "bold", size = 10.5),
-      plot.subtitle = element_text(size = 8),
+      plot.title = element_text(face = "bold", size = 12),
+      plot.subtitle = element_text(size = 10),
 
-      axis.title = element_text(size = 9),
+      axis.title = element_text(size = 10),
       axis.text = element_text(size = 8),
 
       panel.grid.minor = element_blank(),
@@ -469,7 +464,7 @@ plot_pcoa <- function(pcoa_result, title) {
 # Function: run_permanova
 # ------------------------------------------------------------------------------
 # Description:
-#   Runs PERMANOVA using Bray-Curtis distance to test whether disease status explains global differences in microbiome composition.
+#   Runs permanova using Bray-Curtis distance to test whether disease status explains global differences in microbiome composition.
 #
 # Arguments:
 #   mat:
@@ -482,45 +477,160 @@ plot_pcoa <- function(pcoa_result, title) {
 #     taxa/pathways
 #
 # Returns:
-#   Tidy tibble with PERMANOVA results.
+#   Tidy tibble with permanova results.
 # ------------------------------------------------------------------------------
-run_permanova <- function(mat, metadata, feature_set) {
+run_permanova <- function(
+  mat,
+  metadata,
+  feature_set,
+  group_col = "disease_status",
+  permutations = 999,
+  distance_method = "bray",
+  seed = NULL
+) {
+  mat <- as.matrix(mat)
+  storage.mode(mat) <- "numeric"
+
+  if (!group_col %in% colnames(metadata)) {
+    stop("Grouping column not found in metadata: ", group_col)
+  }
+
+  if (is.null(rownames(mat))) {
+    stop("Matrix must have sample IDs as rownames.")
+  }
+
+  if (!"sample_id" %in% colnames(metadata)) {
+    stop("Metadata must contain `sample_id` column.")
+  }
+
+  # Reorder metadata to matrix order.
+  metadata <- metadata %>%
+    filter(.data$sample_id %in% rownames(mat)) %>%
+    arrange(match(.data$sample_id, rownames(mat)))
+
+  mat <- mat[metadata$sample_id, , drop = FALSE]
+
+  if (!identical(rownames(mat), metadata$sample_id)) {
+    stop("Matrix rows and metadata sample_id are not aligned.")
+  }
+
+  # Keep only samples with non-missing group labels.
+  keep_group <- !is.na(metadata[[group_col]])
+  mat <- mat[keep_group, , drop = FALSE]
+  metadata <- metadata[keep_group, , drop = FALSE]
+
+  metadata[[group_col]] <- factor(metadata[[group_col]])
+
+  group_counts <- table(metadata[[group_col]])
+
+  if (length(group_counts) < 2) {
+    stop("PERMANOVA requires at least two groups.")
+  }
+
+  if (any(group_counts < 2)) {
+    stop(
+      "Each group should contain at least 2 samples. Group counts: ",
+      paste(names(group_counts), group_counts, sep = "=", collapse = ", ")
+    )
+  }
+
+  # Remove features that cannot contribute to distances or PCA-like structure.
   mat <- remove_zero_variances(mat)
 
+  if (ncol(mat) == 0) {
+    stop("No features left after removing zero-variance features.")
+  }
+
+  # Remove samples with zero total abundance.
   filtered <- remove_empty_samples(mat, metadata)
   mat <- filtered$mat
   metadata <- filtered$metadata
 
+  if (anyNA(mat)) {
+    stop("Missing values detected in matrix before PERMANOVA.")
+  }
+
   if (any(mat < 0, na.rm = TRUE)) {
     stop(
       "Negative values detected. Bray-Curtis PERMANOVA requires non-negative data. ",
-      "Use log1p-transformed data, not CLR-transformed data."
+      "Use log1p-transformed or untransformed non-negative abundance data, not CLR."
     )
   }
 
-  bray_dist <- vegan::vegdist(mat, method = "bray")
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
-  if (any(is.na(bray_dist))) {
+  dist_mat <- vegan::vegdist(mat, method = distance_method)
+
+  if (any(is.na(dist_mat))) {
     stop(
-      "Bray-Curtis distance contains NA values after removing empty samples. ",
-      "Check whether the matrix contains missing values or invalid rows."
+      "Distance matrix contains NA values. Check empty samples, missing values, ",
+      "or invalid abundance values."
     )
   }
-  
+
+  # PERMANOVA: tests whether group explains global distance structure.
+  formula_text <- paste("dist_mat ~", group_col)
   permanova <- vegan::adonis2(
-    bray_dist ~ disease_status,
+    as.formula(formula_text),
     data = metadata,
-    permutations = 999
+    permutations = permutations,
+    by = "terms"
   )
 
-  as.data.frame(permanova) %>%
+  permanova_tbl <- as.data.frame(permanova) %>%
     rownames_to_column("term") %>%
+    filter(term == group_col) %>%
     mutate(
       feature_set = feature_set,
-      distance = "Bray-Curtis"
+      distance = distance_method,
+      test = "PERMANOVA",
+      n_samples = nrow(metadata),
+      n_features = ncol(mat),
+      permutations = permutations
     ) %>%
-    select(feature_set, distance, term, Df, SumOfSqs, R2, F, `Pr(>F)`) %>%
-    rename(
-      p_value = `Pr(>F)`
-    )
+    select(
+      feature_set,
+      test,
+      distance,
+      term,
+      n_samples,
+      n_features,
+      permutations,
+      Df,
+      SumOfSqs,
+      R2,
+      F,
+      `Pr(>F)`
+    ) %>%
+    rename(p_value = `Pr(>F)`)
+
+  # Dispersion test: checks whether groups differ in within-group variability.
+  dispersion <- vegan::betadisper(
+    dist_mat,
+    group = metadata[[group_col]]
+  )
+
+  dispersion_test <- vegan::permutest(
+    dispersion,
+    permutations = permutations
+  )
+
+  dispersion_tbl <- tibble(
+    feature_set = feature_set,
+    test = "PERMDISP",
+    distance = distance_method,
+    term = group_col,
+    n_samples = nrow(metadata),
+    n_features = ncol(mat),
+    permutations = permutations,
+    Df = NA_real_,
+    SumOfSqs = NA_real_,
+    R2 = NA_real_,
+    F = as.numeric(dispersion_test$tab[1, "F"]),
+    p_value = as.numeric(dispersion_test$tab[1, "Pr(>F)"])
+  )
+
+  bind_rows(permanova_tbl, dispersion_tbl)
 }

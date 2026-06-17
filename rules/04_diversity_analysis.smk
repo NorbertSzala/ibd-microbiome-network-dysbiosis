@@ -13,7 +13,6 @@ rule diversity_analysis:
         pathway_plot=f"{FIGURES}/diversity_pathways.png"
 
     params:
-        seed=config["classification"]["seed"],
         calculate_chao1=config["diversity"]["calculate_chao1"],
         metrics=config["diversity"]["metrics"],
         plot_width=config["plotting"]["width"],
@@ -21,7 +20,7 @@ rule diversity_analysis:
         dpi=config["plotting"]["dpi"],
         
     conda:
-        "../envs/r.yaml"
+        "../envs/r_analysis.yaml"
 
     log:
         f"{LOGS}/04_diversity_analysis.log"

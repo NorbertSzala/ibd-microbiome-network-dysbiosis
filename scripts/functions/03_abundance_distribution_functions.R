@@ -29,7 +29,9 @@ matrix_to_long <- function(mat_df, feature_set) {
 # Function: create_abundance_density_plot
 # ------------------------------------------------------------------------------
 # Description:
-#   Creates a density plot of transformed abundance values. Zero values were removed before plotting, and the number of percentage of removed zero values are displayed as a plot annotation.
+#   Creates basic QC plots for processed taxonomic and pathway abundance matrices.
+#   The input matrices are already filtered and transformed by the preprocessing step.
+#   Therefore, this script plots the transformed abundance values directly.
 #
 # Arguments:
 #   long_df:
@@ -52,14 +54,13 @@ create_abundance_density_plot <- function(long_df, title) {
 
     long_df %>% 
         filter(!is.na(abundance), abundance > 0) %>% 
-        mutate(log10_abundance = log10(abundance)) %>% 
-        ggplot(aes(x=log10_abundance)) + 
+        ggplot(aes(x=abundance)) + 
         geom_density(linewidth=0.8) +
         theme_minimal(base_size = 12) + 
         annotate("label", 
             x=Inf, y=Inf, label = zero_label, hjust = 1.05, vjust = 1.2, size = 3.5)+
         labs(title = title,
-            x = 'log10(non-zero abundance)',
+            x = 'Transformed abundance (log1p)',
             y="Density")
 }
 
@@ -91,17 +92,16 @@ create_abundance_hist_plot <- function(long_df, title) {
 
     long_df %>%
         filter(!is.na(abundance), abundance > 0) %>%
-        mutate(log10_abundance = log10(abundance)) %>%
-        ggplot(aes(x = log10_abundance)) +
-        geom_histogram(bins = 80, alpha = 0.8) +
+        ggplot(aes(x = abundance)) +
+        geom_histogram(aes(y=after_stat(count/sum(count))), bins = 100, alpha = 0.8) +
         annotate(
             "label", x = Inf, y = Inf,label = zero_label, hjust = 1.05, vjust = 1.2, size = 3.5
         ) +
         theme_minimal(base_size = 12) +
         labs(
             title = title,
-            x = "log10(non-zero abundance)",
-            y = "Number of values"
+            x = "Transformed abundance (log1p)",
+            y = "Fraction of non-zero values"
         )
 }
 

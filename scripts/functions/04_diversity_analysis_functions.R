@@ -33,7 +33,7 @@ calculate_diversity_metrics_vegan<- function(mat, feature_set, calculate_chao1=p
 
   diversity_wide <- tibble(
     sample_id = rownames(mat),
-    richness  = vegan::specnumber(mat), # typical richness, but counts even rarely 'organisms' or artefacts
+    richness  = vegan::specnumber(mat), # typical richness, but counts even rarely 'organisms' or artefacts - detected taxa/paths
     richness_threshold_1e5 = rowSums(mat > 1e-5, na.rm = TRUE),
     shannon = vegan::diversity(mat, index=  'shannon'),
     simpson = vegan::diversity(mat, index = "simpson"),
@@ -113,19 +113,25 @@ join_metadata <- function(diversity_df, metadata) {
 run_wilcoxon_tests <- function(diversity_df) {
   diversity_df %>% 
     group_by(feature_set, metric) %>% 
+    filter(is.finite(value)) %>%
     summarize(
       n_healthy = sum(disease_status =='healthy'),
       n_IBD = sum(disease_status == 'IBD'),
       median_healthy = median(value[disease_status == 'healthy'], na.rm = TRUE),
       median_IBD = median(value[disease_status == 'IBD'], na.rm = TRUE),
       difference_median = median_IBD - median_healthy,
-      p_value = wilcox.test(
-        value ~ disease_status,
-        data = pick(everything()), 
-        exact = FALSE)$p.value,
+      p_value = if (n_healthy >= 2 && n_IBD >= 2) {
+        wilcox.test(
+          value ~ disease_status, #values are defined earlier metrics. It cause that the test will be made on each pairs (taxa/pathways + metrics),
+            exact = FALSE
+        )$p.value
+      } else {
+          NA_real_
+      },
+
         .groups = "drop"
       ) %>% mutate (
-        p_adj = p.adjust(p_value, method = "BH")
+        p_adj = p.adjust(p_value, method = "BH") #reduce false discovery rate
       ) %>% 
       arrange(feature_set, p_adj)
 }

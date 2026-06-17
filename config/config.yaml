@@ -20,6 +20,7 @@ paths:
 dataset:
   study_name: "HMP_2019_ibdmdb"
   body_site: "stool"
+  disease_column: "study_condition"
 
 
 # ----------------
@@ -45,7 +46,7 @@ preprocessing:
 # --- Diversity ---
 # -----------------
 diversity:
-  calculate_chao1: true
+  calculate_chao1: false
   metrics:
     - richness
     - shannon

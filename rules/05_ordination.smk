@@ -26,7 +26,7 @@ rule ordination:
         dpi=config["plotting"]["dpi"],
         
     conda:
-        "../envs/r.yaml"
+        "../envs/r_analysis.yaml"
 
     log:
         f"{LOGS}/05_ordination.log"

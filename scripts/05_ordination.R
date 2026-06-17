@@ -12,7 +12,7 @@
 #   Main analyses:
 #   - PCA on transformed abundance matrices. - Does main axes split healthy and IBD?
 #   - PCoA on Bray-Curtis distance matrices. - are samples closer to each other in groups than between groups?
-#   - PERMANOVA to test global group differences. - Does disease status explain significant part of global difference in microbiome expression profile?
+#   - PErmanova was used to test whether disease status explains global differences in taxonomic and pathway abundance profiles based on Bray-Curtis distances. Because permanova can be affected by differences in within-group dispersion, PERMDISP was also calculated using betadisper. Therefore, significant permanova results were interpreted together with the dispersion test.
 #
 # Inputs:
 #   - data/processed/taxa_matrix.csv
@@ -43,8 +43,6 @@ suppressPackageStartupMessages({
 
 source("scripts/functions/00_common_functions.R")
 source("scripts/functions/05_ordination_functions.R")
-
-
 
 # ==============================================================================
 # 2. Paths
@@ -144,23 +142,33 @@ pcoa_pathway_plot <- plot_pcoa(
 # 7. PERMANOVA
 # ==============================================================================
 message("Running PERMANOVA")
-
 permanova_taxa <- run_permanova(
   mat = taxa_mat,
   metadata = taxa_metadata,
-  feature_set = "taxa"
+  feature_set = "taxa",
+  group_col = "disease_status",
+  permutations = 999,
+  distance_method = "bray",
+  seed = params$seed
 )
 
 permanova_pathways <- run_permanova(
   mat = pathway_mat,
   metadata = pathway_metadata,
-  feature_set = "pathways"
+  feature_set = "pathways",
+  group_col = "disease_status",
+  permutations = 999,
+  distance_method = "bray",
+  seed = params$seed
 )
 
 permanova_results <- bind_rows(
   permanova_taxa,
   permanova_pathways
-)
+) %>%
+  group_by(test) %>%
+  mutate(p_adj = p.adjust(p_value, method = "BH")) %>%
+  ungroup()
 
 
 # ==============================================================================

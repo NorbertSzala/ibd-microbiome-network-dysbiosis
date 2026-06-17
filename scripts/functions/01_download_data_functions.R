@@ -4,20 +4,25 @@ suppressPackageStartupMessages({
   library(tidyverse)
 })
 
-set.seed(123)
 
-
+# Finds resources matching a curatedMetagenomicData pttern and downloads the first matching object.
+# The rownames argument controls feature naming
 
 get_first_resource <- function(pattern, rownames = NULL) {
   message("Searching resource: ", pattern)
 
+  # Checks in dryrun what data are available
   available <- curatedMetagenomicData(pattern = pattern, dryrun = TRUE)
 
   if (length(available)==0) {stop("No resources found for pattern: ", pattern)}
 
+  if (length(available) > 1) {
+    warning("Multiple resources found. Using first: ", available[[1]])
+  }
+
   message("Available resources: ")
   print(available)
-  message("Downloading the most recent matching resource")
+  message("Downloading the first matching resource")
 
   if (is.null(rownames)) {# Then default is "long"
     resource_list <- curatedMetagenomicData(pattern=pattern, dryrun=FALSE)
@@ -34,11 +39,13 @@ get_first_resource <- function(pattern, rownames = NULL) {
 }
 
 
+# Choose only samples coming from one tissue
+#SE = SummarizedExperiment (object)
 clean_metadata <- function(se, target_body_site = "stool") {
   metadata <- as.data.frame(colData(se)) %>%
     tibble::rownames_to_column("sample_id")
 
-  # For now, keep all columns but make sure sampleid is explicit
+  # For now, keep all columns but make sure sampleid is explicit. Usually stool
   if ("body_site" %in% colnames(metadata)) {
     metadata <- metadata %>%
       filter(body_site == target_body_site)
@@ -49,20 +56,18 @@ clean_metadata <- function(se, target_body_site = "stool") {
   metadata
 }
 
-summarize_metadata <- function(metadata) {
-  target_columns <- c("disease", "study_condition", "disease_status", "diagnosis")
-
-  disease_col <- intersect(target_columns, colnames(metadata))
-
-  if (length(disease_col) == 0) {
-    return(tibble(variable = "n_samples", value=nrow(metadata)))
+# Create a simple count table for the disease/group variab
+summarize_metadata <- function(metadata, disease_col) {
+  if (!disease_col %in% colnames(metadata)) {
+    stop("Disease column not found in metadata: ", disease_col)
   }
 
-  disease_col <- disease_col[[1]]
+  summary <- metadata %>%
+    count(.data[[disease_col]], name = "n")
 
-  metadata %>%
-    count(.data[[disease_col]], name = "n") %>%
-    rename(group=1) %>%
-    mutate(variable=disease_col) %>%
+  colnames(summary)[1] <- "group"
+
+  summary %>%
+    mutate(variable = disease_col) %>%
     select(variable, group, n)
 }

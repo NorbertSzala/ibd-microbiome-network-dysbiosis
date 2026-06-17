@@ -1,7 +1,3 @@
-# ==============================================================================
-# 1. Setup
-# ==============================================================================
-
 suppressPackageStartupMessages({
   library(tidyverse)
   library(readr)
@@ -140,9 +136,6 @@ run_differential_abundance <- function(long_df, p_adjust_method = "BH") {
       difference_mean = mean_ibd - mean_healthy,
       difference_median = median_ibd - median_healthy,
 
-      log2_fold_change = log2(
-        (mean_ibd + 1e-6) / (mean_healthy + 1e-6)
-      ),
       prevalence_healthy = mean(value[disease_status == "healthy"] > 0, na.rm = TRUE),
       prevalence_ibd = mean(value[disease_status == "IBD"] > 0, na.rm = TRUE),
       difference_prevalence = prevalence_ibd - prevalence_healthy,

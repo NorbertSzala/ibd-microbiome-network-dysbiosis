@@ -1,12 +1,12 @@
 """
-Simple rule making plot about abundance distribution samples after processing    
+Create QC plots showing the distribution of transformed abundance values
+after preprocessing.
 """
     
 rule abundance_distribution:
     input:
         taxa = f"{DATA_PROCESSED}/taxa_matrix.csv",
         pathways = f"{DATA_PROCESSED}/pathway_matrix.csv",
-        metadata = f"{DATA_PROCESSED}/metadata.csv"
 
     output:
         summary_table = f"{TABLES}/abundance_distribution_summary.csv",
@@ -16,13 +16,12 @@ rule abundance_distribution:
         pathways_hist_plot = f"{FIGURES}/abundance_distribution_hist_pathways.png", 
 
     params:
-        seed=config["classification"]["seed"],
         plot_width=config["plotting"]["width"],
         plot_height=config["plotting"]["height"],
         dpi=config["plotting"]["dpi"],
 
     conda:
-        "../envs/r.yaml"
+        "../envs/r_analysis.yaml"
 
     log:
         f"{LOGS}/03_abundance_distribution.log"

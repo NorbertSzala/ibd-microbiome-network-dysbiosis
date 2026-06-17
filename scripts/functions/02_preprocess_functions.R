@@ -7,27 +7,6 @@ suppressPackageStartupMessages({
 })
 
 # ------------------------------------------------------------------------------
-# Function: check_file_exists
-# ------------------------------------------------------------------------------
-# Description:
-#   Checks whether a required input file exists. If the file is missing, the function stops the script with an informative error message.
-
-# Arguments:
-#   path:
-#     Path
-
-# Returns:
-#   Invisibly returns TRUE if the file exists.
-# ------------------------------------------------------------------------------
-check_file_exists <- function(path) {
-  if (!file.exists(path)) {
-    stop("Required input file does not exist: ", path)
-  }
-  invisible(TRUE)
-}
-
-
-# ------------------------------------------------------------------------------
 # Function: extract_abundance_matrix
 # ------------------------------------------------------------------------------
 # Description:
@@ -40,19 +19,21 @@ check_file_exists <- function(path) {
 # Returns:
 #   A numeric matrix with samples as rows and taxa/pathways as columns.
 #------------------------------------------------------------------------------
-extract_abundance_matrix <- function(se) {
-  assay_names <- assayNames(se)
+extract_abundance_matrix <- function(se, assay_name) {
+  assay_names <- SummarizedExperiment::assayNames(se)
 
-  if (length(assay_names) == 0) {
-    stop("The SummarizedExperiment object contains no assays.")
+  if (!assay_name %in% assay_names) {
+    stop(
+      "Assay `", assay_name, "` not found. Available assays: ",
+      paste(assay_names, collapse = ", ")
+    )
   }
 
-  mat <- assay(se, assay_names[1])
-
+  mat <- SummarizedExperiment::assay(se, assay_name)
   mat <- as.matrix(mat)
-  mat <- t(mat)
+  mat <- t(mat) #TRanspose to get samples as rows and features as columns
 
-  storage.mode(mat) <- "numeric"
+  storage.mode(mat) <- "numeric" #change data type in matrix
 
   mat
 }
@@ -91,6 +72,10 @@ standardize_sample_id <- function(sample_ids) {
 #   Invisibly returns TRUE if all required columns exist.
 # ------------------------------------------------------------------------------
 validate_metadata_columns <- function(metadata, sample_id_column, disease_column) {
+  
+  if (!sample_id_column %in% colnames(metadata)) {
+    stop("Metadata must contain sample ID column: ", sample_id_column)
+  }
   required_columns <- c(sample_id_column, disease_column)
 
   missing_columns <- setdiff(required_columns, colnames(metadata))
@@ -214,7 +199,7 @@ filter_metadata_to_groups <- function(metadata, sample_id_column, disease_column
   message("IBD label: ", ibd_label)
 
   metadata %>%
-    standardize_metadata_columns(
+  standardize_metadata_columns(
       sample_id_column = sample_id_column,
       disease_column = disease_column
     ) %>%
@@ -276,6 +261,7 @@ match_taxa_pathway_samples <- function(taxa_mat, pathway_mat, metadata) {
     filter(.data$sample_id %in% common_samples) %>%
     arrange(match(.data$sample_id, common_samples))
 
+  # Make sure the matrix rows are in the same order as metadata rows
   taxa_mat <- taxa_mat[metadata$sample_id, , drop = FALSE]
   pathway_mat <- pathway_mat[metadata$sample_id, , drop = FALSE]
 
@@ -350,8 +336,6 @@ filter_by_prevalence <- function(mat, min_prevalence = 0.10) {
 # Returns:
 #   CLR-transformed numeric matrix.
 #
-# Notes:
-#   CLR transformation is often used for compositional microbiome data. However,  the result depends on the pseudocount and feature filtering strategy.
 # ------------------------------------------------------------------------------
 clr_transform <- function(mat, pseudocount = 1e-6) {
   mat <- as.matrix(mat)
@@ -376,7 +360,7 @@ clr_transform <- function(mat, pseudocount = 1e-6) {
 #
 #   method:
 #     Transformation method. Supported values:
-#     - "log1p": log(1 + x)
+#     - "log1p": log(1 + x) - log() is not possible because a lot of values in the matrices are zero.
 #     - "clr": centered log-ratio transformation
 #
 # Returns:
@@ -409,7 +393,7 @@ transform_abundance <- function(mat, method = "log1p", pseudocount = 1e-1) {
 #
 # Returns:
 #   Character vector of cleaned and unique feature names.
-#
+# '__' Splits different levels of details in the features
 # ------------------------------------------------------------------------------
 make_safe_feature_names <- function(feature_names) {
   feature_names %>%
@@ -517,4 +501,53 @@ build_preprocessing_summary <- function(
           value = as.character(.data$n_samples)
         )
     )
+}
+
+
+# ------------------------------------------------------------------------------
+# Function: filter_clean_pathway_matrix
+# ------------------------------------------------------------------------------
+# Description:
+#   Keeps only unstratified community-level HUMAnN pathway features.
+#   Removes:
+#     - special HUMAnN rows such as UNMAPPED, UNINTEGRATED, UNGROUPED,
+#     - taxon-stratified pathway features containing taxonomic identifiers.
+#
+#   This prevents mixing community-level functional profiles with taxon-specific
+#   pathway contributions.
+#
+# Arguments:
+#   mat:
+#     Sample-by-feature pathway abundance matrix.
+#
+# Returns:
+#   Matrix containing only candidate community-level pathway features.
+# ------------------------------------------------------------------------------
+filter_clean_pathway_matrix <- function(mat) {
+  feature_names <- colnames(mat)
+
+  is_special <- stringr::str_detect(
+    feature_names,
+    "^(UNMAPPED|UNINTEGRATED|UNGROUPED|UNCLASSIFIED|UNKNOWN)(_|$)"
+  )
+
+  is_stratified <- stringr::str_detect(
+    feature_names,
+    "(\\||_)(k|p|c|o|f|g|s|t)__"
+  )
+
+  remove_features <- is_special | is_stratified
+  keep_features <- feature_names[!remove_features]
+
+  message("Pathway features before clean pathway filtering: ", length(feature_names))
+  message("Pathway special HUMAnN features removed: ", sum(is_special))
+  message("Pathway taxon-stratified features removed: ", sum(is_stratified & !is_special))
+  message("Pathway features removed total: ", sum(remove_features))
+  message("Pathway features after clean pathway filtering: ", length(keep_features))
+
+  if (length(keep_features) == 0) {
+    stop("No pathway features left after removing special and stratified features.")
+  }
+
+  mat[, keep_features, drop = FALSE]
 }

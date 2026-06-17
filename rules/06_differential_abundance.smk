@@ -29,7 +29,7 @@ rule differential_abundance:
         max_label_words_pathways=config["plotting"]["max_label_words_pathways"],
             
     conda:
-        "../envs/r.yaml"
+        "../envs/r_analysis.yaml"
 
     log:
         f"{LOGS}/06_differential_abundance.smk"

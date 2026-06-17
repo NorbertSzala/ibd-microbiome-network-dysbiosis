@@ -1,7 +1,7 @@
 rule classification:
     input:
         taxa = f"{DATA_PROCESSED}/taxa_matrix.csv",
-        pathway_matrix = f"{DATA_PROCESSED}/pathway_matrix.csv",
+        pathways = f"{DATA_PROCESSED}/pathway_matrix.csv",
         metadata= f"{DATA_PROCESSED}/metadata.csv"
         
     output:
@@ -26,10 +26,10 @@ rule classification:
         
 
     conda:
-        "../envs/r.yaml"
+        "../envs/r_classification.yaml"
 
     log:
-        f"{LOGS}/07_classification.smk"
+        f"{LOGS}/07_classification.log"
 
     message:
         "Running classification rule."

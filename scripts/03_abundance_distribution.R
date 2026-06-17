@@ -37,7 +37,7 @@ source("scripts/functions/03_abundance_distribution_functions.R")
 if (exists("snakemake")) {
     input_files <- snakemake@input
     output_files <- snakemake@output
-    params <- snakemake$params
+    params <- snakemake@params
 } else {
     stop("This script should be run through Snakemake")
 }
@@ -48,7 +48,6 @@ walk(dirname(unlist(output_files)),
     showWarnings = FALSE
 )
 
-set.seed(params$seed)
 
 # ==============================================================================
 # 3. Load data
@@ -71,23 +70,23 @@ pathways_long <- matrix_to_long(pathways, feature_set = 'pathways')
 message("Creating plots")
 taxa_density_plot<- create_abundance_density_plot(
     taxa_long, 
-    title = "distribution of transformed taxonomic abundances"
+    title = "Distribution of transformed taxonomic abundances"
 )
 
 pathways_density_plot<- create_abundance_density_plot(
     pathways_long, 
-    title = "distribution of transformed pathway abundances"
+    title = "Distribution of transformed pathway abundances"
 )
 
 
 taxa_hist_plot<- create_abundance_hist_plot(
     taxa_long, 
-    title = "distribution of transformed taxonomic abundances"
+    title = "Distribution of transformed taxonomic abundances"
 )
 
 pathways_hist_plot<- create_abundance_hist_plot(
     pathways_long, 
-    title = "distribution of transformed pathway abundances"
+    title = "Distribution of transformed pathway abundances"
 )
 
 
@@ -132,6 +131,6 @@ summary_df <- bind_rows(
     summarize_abundance(pathways_long)
 )
 
-readr::write_csv(summary_df, output_files$summary)
+readr::write_csv(summary_df, output_files$summary_table)
 message("Done")
 sessionInfo()

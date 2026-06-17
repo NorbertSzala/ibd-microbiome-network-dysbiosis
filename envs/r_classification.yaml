@@ -1,0 +1,15 @@
+name: ibd-classification
+channels:
+  - conda-forge
+dependencies:
+  - r-base
+  - r-dplyr
+  - r-tibble
+  - r-readr
+  - r-ggplot2
+  - r-forcats
+  - r-stringr
+  - r-randomforest
+  - r-glmnet
+  - r-proc
+  - r-tidyverse

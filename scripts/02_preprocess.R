@@ -83,19 +83,11 @@ walk(
   recursive = TRUE,
   showWarnings = FALSE
 )
-set.seed(params$seed)
 
 
 # ==============================================================================
 # 3. Load data
 # ==============================================================================
-
-message("Checking input files...")
-
-check_file_exists(input_files$taxa)
-check_file_exists(input_files$pathways)
-check_file_exists(input_files$metadata)
-
 message("Loading raw objects...")
 
 taxa_se <- readRDS(input_files$taxa)
@@ -113,8 +105,8 @@ if (!"sample_id" %in% colnames(metadata)) {
 
 message("Extracting abundance matrices...")
 
-taxa_mat <- extract_abundance_matrix(taxa_se)
-pathway_mat <- extract_abundance_matrix(pathway_se)
+taxa_mat <- extract_abundance_matrix(taxa_se, assay_name = "relative_abundance")
+pathway_mat <- extract_abundance_matrix(pathway_se, assay_name = "pathway_abundance")
 
 message("Raw taxa matrix dimensions: ", paste(dim(taxa_mat), collapse = " x "))
 message("Raw pathway matrix dimensions: ", paste(dim(pathway_mat), collapse = " x "))
@@ -126,6 +118,7 @@ message("Raw pathway matrix dimensions: ", paste(dim(pathway_mat), collapse = " 
 
 message("Filtering metadata to healthy and IBD samples...")
 
+# Creates standarized labels
 metadata <- filter_metadata_to_groups(
   metadata = metadata,
   sample_id_column = sample_id_column,
@@ -134,6 +127,7 @@ metadata <- filter_metadata_to_groups(
   ibd_label = ibd_label
 )
 
+# Extract only those rows common in all datas (kinda innerjoin)
 matched <- match_taxa_pathway_samples(
   taxa_mat = taxa_mat,
   pathway_mat = pathway_mat,
@@ -148,18 +142,23 @@ message("Matched taxa matrix dimensions: ", paste(dim(taxa_mat), collapse = " x 
 message("Matched pathway matrix dimensions: ", paste(dim(pathway_mat), collapse = " x "))
 
 
+
 # ==============================================================================
 # 6. Feature filtering
 # ==============================================================================
-
-message("Filtering features...")
-
+message("Filtering features")
 taxa_before <- ncol(taxa_mat)
-pathways_before <- ncol(pathway_mat)
+pathways_before_clean_filtering <- ncol(pathway_mat)
 
+message("Removing special and taxon-stratified HUMAnN pathway features")
+pathway_mat <- filter_clean_pathway_matrix(pathway_mat)
+check_clean_pathway_matrix(pathway_mat)
+
+#Remove samples with zero signal
 taxa_mat <- remove_zero_sum_features(taxa_mat)
 pathway_mat <- remove_zero_sum_features(pathway_mat)
 
+# Keep only those taxes/pathways present in at least min_prevalence (10%) samples
 taxa_mat <- filter_by_prevalence(
   mat = taxa_mat,
   min_prevalence = min_prevalence
@@ -240,6 +239,21 @@ preprocessing_summary <- build_preprocessing_summary(
   transformation = transformation
 )
 
+preprocessing_summary <- preprocessing_summary %>%
+  bind_rows(
+    tibble(
+      metric = c(
+        "n_pathways_before_clean_filtering",
+        "n_pathways_after_clean_filtering",
+        "n_pathways_removed_by_clean_filtering"
+      ),
+      value = c(
+        as.character(pathways_before_clean_filtering),
+        as.character(pathways_after_clean_filtering),
+        as.character(pathways_before_clean_filtering - pathways_after_clean_filtering)
+      )
+    )
+  )
 
 # ==============================================================================
 # 10. Save outputs

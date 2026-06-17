@@ -20,11 +20,10 @@ rule preprocess:
         disease_column=config["metadata"]["disease_column"],
         healthy_label=config["metadata"]["healthy_label"],
         ibd_label=config["metadata"]["ibd_label"],
-        seed= config['classification']['seed'],
 
 
     conda:
-        "../envs/r.yaml"
+        "../envs/r_analysis.yaml"
 
     log:
         f"{LOGS}/02_preprocess.log"
